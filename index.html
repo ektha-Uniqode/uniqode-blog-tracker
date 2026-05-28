@@ -77,19 +77,21 @@ nav h1{font-size:16px;font-weight:700;letter-spacing:-.3px}
 .config-input{width:100%;background:var(--surf2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:10px 12px;font-family:'SF Mono','Fira Code',monospace;font-size:12px;outline:none;resize:vertical;min-height:130px}
 .config-input:focus{border-color:var(--accent)}
 
-/* ── PROGRESS ── */
-.progress-bar{padding:16px 28px 0;border-bottom:1px solid var(--border)}
-.prog-row{display:flex;gap:20px;align-items:center;flex-wrap:wrap;padding-bottom:14px}
-.prog-track-wrap{flex:1;min-width:200px;max-width:380px}
-.prog-labels{display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;color:var(--muted)}
-.prog-labels span:first-child{color:var(--text);font-weight:600}
-.prog-track{height:5px;background:var(--surf2);border-radius:3px;overflow:hidden}
-.prog-fill{height:100%;background:#22c55e;border-radius:3px;transition:width .4s}
-.pills{display:flex;gap:8px;flex-wrap:wrap}
-.pill{background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:5px 11px;font-size:12px;display:flex;align-items:center;gap:6px;white-space:nowrap}
-.pill .n{font-size:15px;font-weight:700}
-.pill.red .n{color:#ef4444}
-.pill.green .n{color:#22c55e}
+/* ── STATS AREA ── */
+.stats-area{padding:20px 28px;border-bottom:1px solid var(--border);display:flex;gap:28px;align-items:center;flex-wrap:wrap}
+.stats-left{flex:1;min-width:220px;max-width:360px}
+.prog-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.prog-actioned{font-size:13px;font-weight:700;color:var(--text)}
+.prog-pct{font-size:22px;font-weight:800;color:#22c55e;letter-spacing:-1px}
+.prog-track{height:6px;background:var(--surf2);border-radius:3px;overflow:hidden;margin-bottom:8px}
+.prog-fill{height:100%;background:#22c55e;border-radius:3px;transition:width .5s ease}
+.prog-q2{font-size:11px;color:var(--muted)}
+.stat-cards{display:flex;gap:12px;flex-wrap:wrap}
+.stat-card{background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:14px 20px;min-width:90px;text-align:center;flex:1}
+.stat-card.green{border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.05)}
+.stat-num{font-size:26px;font-weight:800;letter-spacing:-1px;line-height:1}
+.stat-card.green .stat-num{color:#22c55e}
+.stat-label{font-size:10px;color:var(--muted);margin-top:4px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
 
 /* ── CONTROLS ── */
 .controls{padding:12px 28px;display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--border);flex-wrap:wrap}
@@ -173,7 +175,7 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
 .spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-@media(max-width:600px){nav,.progress-bar,.controls,.table-wrap{padding-left:14px;padding-right:14px}.prog-row{flex-direction:column;align-items:flex-start}}
+@media(max-width:600px){nav,.stats-area,.controls,.table-wrap{padding-left:14px;padding-right:14px}.stats-area{flex-direction:column;align-items:flex-start}}
 </style>
 </head>
 <body>
@@ -236,27 +238,21 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
   </div>
 </div>
 
-<!-- PROGRESS -->
-<div class="progress-bar">
-  <div class="prog-row">
-    <div class="prog-track-wrap">
-      <div class="prog-labels">
-        <span id="progText">0 of 400 actioned</span>
-        <span id="progPct">0%</span>
-      </div>
-      <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+<!-- STATS -->
+<div class="stats-area">
+  <div class="stats-left">
+    <div class="prog-header">
+      <span class="prog-actioned" id="progText">0 of 400 actioned</span>
+      <span class="prog-pct" id="progPct">0%</span>
     </div>
-    <div class="pills">
-      <div class="pill"><span class="n" id="sTotal">—</span><span>Total</span></div>
-      <div class="pill green"><span class="n" id="sPub">0</span><span>Published ✓</span></div>
-      <div class="pill"><span class="n" id="sInProg">0</span><span>In Progress</span></div>
-      <div class="pill green"><span class="n" id="sMerge">0</span><span>Merged ✓</span></div>
-      <div class="pill green"><span class="n" id="sDel">0</span><span>Deleted ✓</span></div>
-      <div class="pill red"><span class="n" id="sFlag">0</span><span>Flagged <span class="info-icon" data-tip="An article is flagged when SEO or editorial review has been waiting 2+ business days without a response, or the turnaround took more than 2 business days. Use this for weekly accountability checks.">ⓘ</span></span></div>
-    </div>
+    <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+    <div class="prog-q2" id="q2WeeksLabel"></div>
   </div>
-  <div style="padding:6px 0 10px;display:flex;align-items:center;gap:6px">
-    <span style="font-size:11px;color:var(--muted)" id="q2WeeksLabel"></span>
+  <div class="stat-cards">
+    <div class="stat-card"><div class="stat-num" id="sTotal">—</div><div class="stat-label">Total</div></div>
+    <div class="stat-card green"><div class="stat-num" id="sPub">0</div><div class="stat-label">Published ✓</div></div>
+    <div class="stat-card green"><div class="stat-num" id="sMerge">0</div><div class="stat-label">Merged ✓</div></div>
+    <div class="stat-card green"><div class="stat-num" id="sDel">0</div><div class="stat-label">Deleted ✓</div></div>
   </div>
 </div>
 
@@ -274,22 +270,19 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
   </select>
   <select id="fStatus" onchange="render()">
     <option value="">All statuses</option>
-    <option>Not Started</option><option>Drafted</option><option>SEO Review</option>
-    <option>SEO Done</option><option>Editorial Review</option><option>Done</option>
-    <option>To Be Merged</option><option>Merged</option>
-    <option>To Be Deleted</option><option>Deleted</option>
-    <option>Keep</option><option>Published</option>
+    <option>Not Started</option>
+    <option>In Progress</option>
+    <option>Published</option>
+    <option>Merged</option>
+    <option>Deleted</option>
   </select>
   <select id="fFlag" onchange="render()">
     <option value="">All articles</option>
-    <option value="flagged">🚩 Flagged</option>
     <option value="notstarted">◻ Not Started</option>
     <option value="inprogress">📝 In Progress</option>
     <option value="published">✅ Published</option>
-    <option value="tobeMerged">↪ To Be Merged</option>
-    <option value="merged">🔀 Merged (done)</option>
-    <option value="tobeDeleted">✂ To Be Deleted</option>
-    <option value="deleted">🗑 Deleted (done)</option>
+    <option value="merged">🔀 Merged</option>
+    <option value="deleted">🗑 Deleted</option>
   </select>
   <div class="controls-right">
     <input type="text" id="searchInput" placeholder="Search URL or title…" oninput="render()">
@@ -334,11 +327,11 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
       </div>
       <div class="fg"><label>Status</label>
         <select id="fStatus2">
-          <option>Not Started</option><option>Drafted</option><option>SEO Review</option>
-          <option>SEO Done</option><option>Editorial Review</option><option>Done</option>
-          <option>To Be Merged</option><option>Merged</option>
-          <option>To Be Deleted</option><option>Deleted</option>
-          <option>Keep</option><option>Published</option>
+          <option>Not Started</option>
+          <option>In Progress</option>
+          <option>Published</option>
+          <option>Merged</option>
+          <option>Deleted</option>
         </select>
       </div>
       <div class="fg"><label>SEO Sent</label><input id="fSeoSent" type="date"></div>
@@ -358,18 +351,11 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
 <script>
 // ─── STATUS CONFIG ────────────────────────────────────────────────────────────
 const STATUS_CFG = {
-  'Not Started':      {bg:'var(--s0)',color:'var(--s0t)',dot:'#aaa'},
-  'Drafted':          {bg:'var(--s1)',color:'var(--s1t)',dot:'#3b82f6'},
-  'SEO Review':       {bg:'var(--s2)',color:'var(--s2t)',dot:'#eab308'},
-  'SEO Done':         {bg:'var(--s3)',color:'var(--s3t)',dot:'#22c55e'},
-  'Editorial Review': {bg:'var(--s4)',color:'var(--s4t)',dot:'#a855f7'},
-  'Done':             {bg:'var(--s5)',color:'var(--s5t)',dot:'#10b981'},
-  'To Be Merged':     {bg:'var(--s6)',color:'var(--s6t)',dot:'#f97316'},
-  'To Be Deleted':    {bg:'var(--s7)',color:'var(--s7t)',dot:'#ef4444'},
-  'Keep':             {bg:'var(--s8)',color:'var(--s8t)',dot:'#777'},
-  'Published':        {bg:'var(--s9)',color:'var(--s9t)',dot:'#16a34a'},
-  'Merged':           {bg:'var(--s10)',color:'var(--s10t)',dot:'#4f46e5'},
-  'Deleted':          {bg:'var(--s11)',color:'var(--s11t)',dot:'#6b7280'},
+  'Not Started':  {bg:'var(--s0)', color:'var(--s0t)', dot:'#aaa'},
+  'In Progress':  {bg:'var(--s1)', color:'var(--s1t)', dot:'#3b82f6'},
+  'Published':    {bg:'var(--s9)', color:'var(--s9t)', dot:'#16a34a'},
+  'Merged':       {bg:'var(--s10)',color:'var(--s10t)',dot:'#4f46e5'},
+  'Deleted':      {bg:'var(--s11)',color:'var(--s11t)',dot:'#6b7280'},
 };
 const STATUSES = Object.keys(STATUS_CFG);
 const TARGET = 400;
@@ -535,7 +521,7 @@ function bizDaysBetween(startStr, endStr) {
   return c;
 }
 
-const RESOLVED = new Set(['Published','Done','To Be Merged','To Be Deleted','Keep','Merged','Deleted']);
+const RESOLVED = new Set(['Published','Merged','Deleted']);
 function isStuck(a) {
   // Currently waiting — overdue (no return date yet)
   if (!RESOLVED.has(a.status)) {
@@ -610,14 +596,11 @@ function render() {
     if (typeF === 'lp'   && resolvedType !== 'LP')   return false;
     if (ownerF  && a.assignedTo !== ownerF) return false;
     if (statusF && a.status !== statusF)    return false;
-    if (flagF==='flagged'     && !isStuck(a)) return false;
+    if (flagF==='notstarted'  && a.status !== 'Not Started') return false;
+    if (flagF==='inprogress'  && a.status !== 'In Progress') return false;
     if (flagF==='published'   && a.status !== 'Published') return false;
     if (flagF==='merged'      && a.status !== 'Merged') return false;
     if (flagF==='deleted'     && a.status !== 'Deleted') return false;
-    if (flagF==='tobeMerged'  && a.status !== 'To Be Merged') return false;
-    if (flagF==='tobeDeleted' && a.status !== 'To Be Deleted') return false;
-    if (flagF==='inprogress'  && !['Drafted','SEO Review','SEO Done','Editorial Review','Done'].includes(a.status)) return false;
-    if (flagF==='notstarted'  && a.status !== 'Not Started') return false;
     if (search && !a.url.toLowerCase().includes(search) && !a.title.toLowerCase().includes(search)) return false;
     return true;
   });
@@ -648,7 +631,7 @@ function render() {
       const editBackLate = a.editBack && editTurn > 2;
       const editAge      = editSentLate ? editWait : (editBackLate ? editTurn : 0);
       const shortUrl = a.url.replace('https://www.uniqode.com','');
-      const doneGreen = ['Published','Merged'].includes(a.status);
+      const doneGreen = ['Published','Merged','Deleted'].includes(a.status);
       const autoType = shortUrl.includes('/blog') ? 'Blog' : 'LP';
       const typeBadge = typeSelectHtml(a.id, a.type, autoType);
       return `<tr class="${stuck?'flagged':doneGreen?'done-green':''}" id="row-${a.id}">
@@ -682,19 +665,15 @@ function quickStatus(id, val) {
 function updateStats() {
   const all = Object.values(articles);
   const pub  = all.filter(a=>a.status==='Published').length;
-  const inp  = all.filter(a=>['Drafted','SEO Review','SEO Done','Editorial Review','Done'].includes(a.status)).length;
   const mrg  = all.filter(a=>a.status==='Merged').length;
   const del  = all.filter(a=>a.status==='Deleted').length;
-  const flg  = all.filter(isStuck).length;
   const actioned = pub + mrg + del;
   const pct  = Math.round(actioned/TARGET*100);
 
   document.getElementById('sTotal').textContent  = all.length;
   document.getElementById('sPub').textContent    = pub;
-  document.getElementById('sInProg').textContent = inp;
   document.getElementById('sMerge').textContent  = mrg;
   document.getElementById('sDel').textContent    = del;
-  document.getElementById('sFlag').textContent   = flg;
   document.getElementById('progText').textContent= `${actioned} of ${TARGET} actioned`;
   document.getElementById('progPct').textContent = `${pct}%`;
   document.getElementById('progFill').style.width= `${pct}%`;
