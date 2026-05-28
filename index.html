@@ -407,7 +407,7 @@ function showAuthToast() {
 
 function updateArticle(id, changes) {
   if (!db) return;
-  if (!canEdit()) { showAuthToast(); return; }
+  if (!canEdit()) { showAuthToast(); render(); return; }
   db.ref('articles/'+id).update({ ...changes, updatedAt: new Date().toISOString() });
 }
 
