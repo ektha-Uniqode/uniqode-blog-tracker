@@ -39,6 +39,27 @@ nav h1{font-size:16px;font-weight:700;letter-spacing:-.3px}
 .sync-label{font-size:11px;color:var(--muted)}
 .nav-right{display:flex;gap:8px}
 
+/* ── ACTIVITY PANEL ── */
+#activityPanel{position:fixed;top:0;right:-420px;width:400px;height:100vh;background:var(--surf);border-left:1px solid var(--border);z-index:200;display:flex;flex-direction:column;transition:right .25s ease;box-shadow:-4px 0 24px rgba(0,0,0,.4)}
+#activityPanel.open{right:0}
+.act-panel-head{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.act-panel-head h2{font-size:14px;font-weight:700}
+.act-panel-close{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:2px 6px;border-radius:4px}
+.act-panel-close:hover{color:var(--text);background:var(--surf2)}
+#activityFeed{overflow-y:auto;flex:1;padding:12px 0}
+.act-entry{display:flex;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border)33}
+.act-entry:hover{background:var(--surf2)22}
+.act-avatar{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.act-body{flex:1;min-width:0}
+.act-who{font-weight:600;font-size:12px}
+.act-desc{font-size:12px;color:var(--muted);line-height:1.5;margin-top:2px;word-break:break-word}
+.act-desc b{color:var(--text)}
+.act-val-from{text-decoration:line-through;color:#ef4444;font-size:11px}
+.act-val-to{color:#22c55e;font-size:11px;font-weight:600}
+.act-time{font-size:10px;color:var(--muted);margin-top:3px}
+#actOverlay{display:none;position:fixed;inset:0;z-index:199}
+#actOverlay.open{display:block}
+
 /* ── AUTH OVERLAY ── */
 #authOverlay{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center}
 .auth-card{background:var(--surf);border:1px solid var(--border);border-radius:14px;padding:40px 44px;text-align:center;max-width:380px;width:90%}
@@ -165,12 +186,23 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
     <span class="sync-label" id="syncLabel"></span>
   </div>
   <div class="nav-right">
+    <button class="btn btn-secondary" onclick="toggleActivity()" title="Activity log">🕐 Activity</button>
     <button class="btn btn-secondary" onclick="copyShareLink(this)">🔗 Share</button>
     <button class="btn btn-secondary" onclick="exportCSV()">Export CSV</button>
     <button class="btn btn-secondary" id="signInBtn" onclick="signInWithGoogle()" style="color:#a78bfa">✏️ Sign in to edit</button>
     <button class="btn btn-secondary" id="signOutBtn" onclick="doSignOut()" style="display:none;color:var(--muted)" title="">Sign out</button>
   </div>
 </nav>
+
+<!-- ACTIVITY PANEL -->
+<div id="actOverlay" onclick="toggleActivity()"></div>
+<div id="activityPanel">
+  <div class="act-panel-head">
+    <h2>🕐 Activity Log</h2>
+    <button class="act-panel-close" onclick="toggleActivity()">✕</button>
+  </div>
+  <div id="activityFeed"><p style="color:var(--muted);padding:20px;font-size:13px">Loading…</p></div>
+</div>
 
 <!-- AUTH TOAST -->
 <div id="authToast" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surf);border:1px solid var(--border);color:var(--text);padding:12px 20px;border-radius:9px;font-size:13px;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,.5);display:flex;align-items:center;gap:12px">
@@ -414,10 +446,70 @@ function showAuthToast() {
   showAuthToast._timer = setTimeout(() => { t.style.display = 'none'; }, 5000);
 }
 
+const FIELD_LABELS = { status:'Status', assignedTo:'Owner', seoSent:'SEO Sent', seoBack:'SEO Back', editSent:'Ed. Sent', editBack:'Ed. Back', published:'Published Date', type:'Type', notes:'Notes', title:'Title' };
+
 function updateArticle(id, changes) {
   if (!db) return;
   if (!canEdit()) { showAuthToast(); render(); return; }
+  const user = firebase.auth().currentUser;
+  const old = articles[id] || {};
+  // Log each changed field to activity
+  Object.keys(changes).forEach(field => {
+    if (field === 'updatedAt') return;
+    const from = (old[field] || '').toString();
+    const to   = (changes[field] || '').toString();
+    if (from === to) return;
+    db.ref('activity').push({
+      email: user.email,
+      name: user.displayName || user.email.split('@')[0],
+      articleId: id,
+      title: old.title || old.url || id,
+      url: old.url || '',
+      field,
+      from,
+      to,
+      ts: firebase.database.ServerValue.TIMESTAMP
+    });
+  });
   db.ref('articles/'+id).update({ ...changes, updatedAt: new Date().toISOString() });
+}
+
+// ─── ACTIVITY PANEL ───────────────────────────────────────────────────────────
+function toggleActivity() {
+  const panel = document.getElementById('activityPanel');
+  const overlay = document.getElementById('actOverlay');
+  const isOpen = panel.classList.toggle('open');
+  overlay.classList.toggle('open', isOpen);
+  if (isOpen) loadActivity();
+}
+
+function loadActivity() {
+  const feed = document.getElementById('activityFeed');
+  feed.innerHTML = '<p style="color:var(--muted);padding:20px;font-size:13px">Loading…</p>';
+  db.ref('activity').orderByChild('ts').limitToLast(150).once('value', snap => {
+    const entries = [];
+    snap.forEach(c => entries.unshift(c.val()));
+    if (!entries.length) {
+      feed.innerHTML = '<p style="color:var(--muted);padding:20px;font-size:13px">No activity yet.</p>';
+      return;
+    }
+    feed.innerHTML = entries.map(e => {
+      const label = FIELD_LABELS[e.field] || e.field;
+      const initials = (e.name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+      const when = e.ts ? new Date(e.ts).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+      const shortTitle = (e.title||'').length > 40 ? (e.title||'').slice(0,40)+'…' : (e.title||e.url||'');
+      const fromHtml = e.from ? `<span class="act-val-from">${e.from}</span> → ` : '';
+      const toHtml = `<span class="act-val-to">${e.to||'—'}</span>`;
+      return `<div class="act-entry">
+        <div class="act-avatar">${initials}</div>
+        <div class="act-body">
+          <span class="act-who">${e.name}</span>
+          <div class="act-desc">Changed <b>${label}</b> on <b title="${e.url}">${shortTitle}</b><br>${fromHtml}${toHtml}</div>
+          <div class="act-time">${when}</div>
+        </div>
+      </div>`;
+    }).join('');
+  });
 }
 
 // ─── BUSINESS DAYS ────────────────────────────────────────────────────────────
