@@ -8,6 +8,7 @@
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -37,6 +38,16 @@ nav h1{font-size:16px;font-weight:700;letter-spacing:-.3px}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .sync-label{font-size:11px;color:var(--muted)}
 .nav-right{display:flex;gap:8px}
+
+/* ── AUTH OVERLAY ── */
+#authOverlay{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center}
+.auth-card{background:var(--surf);border:1px solid var(--border);border-radius:14px;padding:40px 44px;text-align:center;max-width:380px;width:90%}
+.auth-logo{font-size:32px;margin-bottom:16px}
+.auth-title{font-size:18px;font-weight:700;margin-bottom:6px}
+.auth-sub{color:var(--muted);font-size:13px;line-height:1.6;margin-bottom:28px}
+.btn-google{display:inline-flex;align-items:center;gap:10px;background:#fff;color:#1f1f1f;border:none;border-radius:8px;padding:11px 22px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .15s;width:100%;justify-content:center}
+.btn-google:hover{opacity:.88}
+#authError{color:#ef4444;font-size:12px;margin-top:14px;display:none;line-height:1.5}
 
 /* ── SETUP BANNER ── */
 #setupBanner{background:#1a1030;border:1px solid #6c63ff44;border-radius:10px;padding:20px 24px;margin:20px 28px;display:none}
@@ -152,8 +163,19 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
   <div class="nav-right">
     <button class="btn btn-secondary" onclick="copyShareLink(this)">🔗 Share</button>
     <button class="btn btn-secondary" onclick="exportCSV()">Export CSV</button>
+    <button class="btn btn-secondary" id="signInBtn" onclick="signInWithGoogle()" style="color:#a78bfa">✏️ Sign in to edit</button>
+    <button class="btn btn-secondary" id="signOutBtn" onclick="doSignOut()" style="display:none;color:var(--muted)" title="">Sign out</button>
   </div>
 </nav>
+
+<!-- AUTH TOAST -->
+<div id="authToast" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surf);border:1px solid var(--border);color:var(--text);padding:12px 20px;border-radius:9px;font-size:13px;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,.5);display:flex;align-items:center;gap:12px">
+  <span id="authToastMsg"></span>
+  <button class="btn-google" onclick="signInWithGoogle()" style="padding:6px 14px;font-size:12px;border-radius:6px;flex-shrink:0">
+    <svg viewBox="0 0 48 48" width="14" height="14"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.6 32.8 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3L37.3 10C34 6.9 29.2 5 24 5 13 5 4 14 4 24s9 19 20 19c10.2 0 19-7.7 19-19 0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c3.1 0 5.8 1.1 7.9 3L37.3 10C34 6.9 29.2 5 24 5c-7.7 0-14.4 4.4-17.7 9.7z"/><path fill="#4CAF50" d="M24 43c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.3 34.5 26.8 35 24 35c-5.2 0-9.5-3.2-11.3-7.8l-6.5 5C9.5 38.5 16.2 43 24 43z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.9 2.4-2.5 4.4-4.5 5.8l6.2 5.2C40.7 36.1 44 30.6 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
+    Sign in with Google
+  </button>
+</div>
 
 <!-- FIREBASE SETUP BANNER -->
 <div id="setupBanner">
@@ -370,8 +392,22 @@ function startListening() {
   });
 }
 
+function canEdit() {
+  const u = firebase.auth().currentUser;
+  return u && ALLOWED_EMAILS.includes(u.email);
+}
+
+function showAuthToast() {
+  const t = document.getElementById('authToast');
+  document.getElementById('authToastMsg').textContent = 'Sign in to make edits.';
+  t.style.display = 'flex';
+  clearTimeout(showAuthToast._timer);
+  showAuthToast._timer = setTimeout(() => { t.style.display = 'none'; }, 5000);
+}
+
 function updateArticle(id, changes) {
   if (!db) return;
+  if (!canEdit()) { showAuthToast(); return; }
   db.ref('articles/'+id).update({ ...changes, updatedAt: new Date().toISOString() });
 }
 
@@ -652,24 +688,52 @@ function saveConfig() {
 }
 
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
+const ALLOWED_EMAILS = ['hibathu.n@uniqode.com','somreeta.s@uniqode.com','ektha.s@uniqode.com'];
+
+function signInWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ hd: 'uniqode.com' });
+  firebase.auth().signInWithPopup(provider).catch(err => {
+    alert('Sign-in failed: ' + err.message);
+  });
+}
+
+function doSignOut() {
+  firebase.auth().signOut();
+}
+
+function updateAuthUI(user) {
+  const signInBtn  = document.getElementById('signInBtn');
+  const signOutBtn = document.getElementById('signOutBtn');
+  const toast      = document.getElementById('authToast');
+  if (user && ALLOWED_EMAILS.includes(user.email)) {
+    signInBtn.style.display  = 'none';
+    signOutBtn.style.display = 'inline-flex';
+    signOutBtn.title         = `Signed in as ${user.email}`;
+    if (toast) toast.style.display = 'none';
+  } else {
+    signInBtn.style.display  = 'inline-flex';
+    signOutBtn.style.display = 'none';
+  }
+}
+
 (function boot() {
   const cfg = loadConfig();
-  if (!cfg) {
-    document.getElementById('loadingState').innerHTML = `
-      <div style="max-width:400px;margin:0 auto;text-align:left">
-        <p style="font-size:22px;margin-bottom:12px">👋</p>
-        <p style="font-weight:600;font-size:15px;margin-bottom:8px">One-time setup needed</p>
-        <p style="color:var(--muted);line-height:1.6;margin-bottom:16px">Connect Firebase to sync with your team. It takes about 5 minutes and it's free.</p>
-        <button class="btn btn-primary" onclick="showSetup();document.getElementById('setupBanner').scrollIntoView({behavior:'smooth'})">Connect Firebase →</button>
-      </div>`;
-    showSetup();
+  if (!initFirebase(cfg)) {
+    document.getElementById('loadingState').innerHTML = '<p style="color:#ef4444">Failed to connect to Firebase.</p>';
     return;
   }
-  if (initFirebase(cfg)) {
-    startListening();
-  } else {
-    document.getElementById('loadingState').innerHTML='<p style="color:#ef4444">Failed to connect. <a href="#" onclick="showSetup()" style="color:#a78bfa">Check config</a></p>';
-  }
+  // Load data immediately for all visitors (read is public)
+  startListening();
+  // Auth state only controls edit access
+  firebase.auth().onAuthStateChanged(user => {
+    if (user && !ALLOWED_EMAILS.includes(user.email)) {
+      firebase.auth().signOut();
+      alert('Access denied — only hibathu.n, somreeta.s, and ektha.s @uniqode.com can edit this tracker.');
+      return;
+    }
+    updateAuthUI(user || null);
+  });
 })();
 
 // keyboard
