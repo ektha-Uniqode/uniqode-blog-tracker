@@ -97,6 +97,10 @@ td{padding:9px 10px;vertical-align:middle}
 .url-slug{font-size:11px;color:var(--muted);font-family:'SF Mono','Fira Code',monospace;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .url-slug a{color:var(--muted);text-decoration:none}
 .url-slug a:hover{color:var(--accent);text-decoration:underline}
+.type-badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.4px;white-space:nowrap}
+.type-blog{background:#dbeafe;color:#1d4ed8}
+.type-lp{background:#ffedd5;color:#c2410c}
+.url-meta{display:flex;align-items:center;gap:6px;margin-bottom:2px}
 
 /* status badge */
 .badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap;cursor:default}
@@ -227,6 +231,11 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
 <!-- CONTROLS -->
 <div class="controls">
   <button class="btn btn-primary" onclick="openModal()">+ Add URL</button>
+  <select id="fType" onchange="render()">
+    <option value="">All types</option>
+    <option value="blog">Blog</option>
+    <option value="lp">LP</option>
+  </select>
   <select id="fOwner" onchange="render()">
     <option value="">All owners</option>
     <option>Ektha</option><option>Hiba</option><option>Harsh</option><option>Vipul</option>
@@ -261,16 +270,16 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
   <table id="mainTable" style="display:none">
     <thead>
       <tr>
-        <th style="width:28px"></th>
         <th>URL</th>
-        <th>Assigned To</th>
+        <th style="width:60px">Type</th>
+        <th>Owner</th>
         <th style="width:150px">Status</th>
         <th>SEO Sent</th>
         <th>SEO Back</th>
         <th>Ed. Sent</th>
         <th>Ed. Back</th>
         <th>Published</th>
-        <th></th>
+        <th style="width:36px"></th>
       </tr>
     </thead>
     <tbody id="tbody"></tbody>
@@ -487,11 +496,15 @@ function quickDate(id, field, val) {
 
 function render() {
   const ownerF  = document.getElementById('fOwner').value;
+  const typeF   = document.getElementById('fType').value;
   const statusF = document.getElementById('fStatus').value;
   const flagF   = document.getElementById('fFlag').value;
   const search  = document.getElementById('searchInput').value.toLowerCase().trim();
 
   const list = Object.values(articles).filter(a => {
+    const slug = a.url.replace('https://www.uniqode.com','');
+    if (typeF === 'blog' && !slug.includes('/blog')) return false;
+    if (typeF === 'lp'   && slug.includes('/blog'))  return false;
     if (ownerF  && a.assignedTo !== ownerF) return false;
     if (statusF && a.status !== statusF)    return false;
     if (flagF==='flagged'     && !isStuck(a)) return false;
@@ -533,12 +546,16 @@ function render() {
       const editAge      = editSentLate ? editWait : (editBackLate ? editTurn : 0);
       const shortUrl = a.url.replace('https://www.uniqode.com','');
       const doneGreen = ['Published','Merged'].includes(a.status);
+      const isLp   = !shortUrl.includes('/blog');
+      const typeBadge = isLp
+        ? '<span class="type-badge type-lp">LP</span>'
+        : '<span class="type-badge type-blog">Blog</span>';
       return `<tr class="${stuck?'flagged':doneGreen?'done-green':''}" id="row-${a.id}">
-        <td style="white-space:nowrap">${stuck?'<span class="flag" title="Stuck 2+ business days">⚑</span>':''}${a.notes?`<span class="note-pip" data-note="${a.notes.replace(/"/g,'&quot;').replace(/\n/g,'&#10;')}">📝</span>`:''}</td>
         <td>
-          <div class="url-title" title="${a.title||shortUrl}">${a.title||shortUrl}</div>
+          <div class="url-meta">${stuck?'<span class="flag" title="Stuck 2+ business days">⚑</span>':''}${a.notes?`<span class="note-pip" data-note="${a.notes.replace(/"/g,'&quot;').replace(/\n/g,'&#10;')}">📝</span>`:''}<span class="url-title" title="${a.title||shortUrl}">${a.title||shortUrl}</span></div>
           <div class="url-slug"><a href="${a.url}" target="_blank">${shortUrl}</a></div>
         </td>
+        <td>${typeBadge}</td>
         <td>${ownerSelectHtml(a.id, a.assignedTo)}</td>
         <td>${statusSelectHtml(a.id, a.status)}</td>
         <td>${dateInputHtml(a.id,'seoSent',a.seoSent,seoSentLate)}${seoSentLate?` <span style="font-size:10px;color:#ef4444;font-weight:700" title="Waiting ${seoAge} bizdays">${seoAge}d</span>`:''}</td>
@@ -546,10 +563,7 @@ function render() {
         <td>${dateInputHtml(a.id,'editSent',a.editSent,editSentLate)}${editSentLate?` <span style="font-size:10px;color:#ef4444;font-weight:700" title="Waiting ${editAge} bizdays">${editAge}d</span>`:''}</td>
         <td>${dateInputHtml(a.id,'editBack',a.editBack,editBackLate)}${editBackLate?` <span style="font-size:10px;color:#ef4444;font-weight:700" title="Took ${editTurn} bizdays">${editTurn}d</span>`:''}</td>
         <td>${dateInputHtml(a.id,'published',a.published)}</td>
-        <td>
-          <button class="act-btn" onclick="openModal('${a.id}')" title="Edit">✏️</button>
-          <button class="act-btn" onclick="deleteArt('${a.id}')" title="Delete">🗑</button>
-        </td>
+        <td><button class="act-btn" onclick="openModal('${a.id}')" title="Open">✏️</button></td>
       </tr>`;
     }).join('');
   }
