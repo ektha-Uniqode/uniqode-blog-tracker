@@ -481,6 +481,16 @@ function quickOwner(id, val) {
   updateArticle(id, { assignedTo: val });
 }
 
+function typeSelectHtml(id, current, autoType) {
+  const val = current || autoType;
+  const opts = ['Blog','LP'].map(t => `<option value="${t}"${t===val?' selected':''}>${t}</option>`).join('');
+  const cls = val === 'Blog' ? 'type-blog' : 'type-lp';
+  return `<select onchange="quickType('${id}',this.value)" class="type-badge ${cls}" style="border:none;cursor:pointer;outline:none;appearance:auto;padding:2px 5px">${opts}</select>`;
+}
+function quickType(id, val) {
+  updateArticle(id, { type: val });
+}
+
 function dateInputHtml(id, field, val, isLate=false) {
   const col = isLate ? '#ef4444' : (val ? 'var(--text)' : 'var(--muted)');
   const wt  = isLate ? '700' : '400';
@@ -503,8 +513,9 @@ function render() {
 
   const list = Object.values(articles).filter(a => {
     const slug = a.url.replace('https://www.uniqode.com','');
-    if (typeF === 'blog' && !slug.includes('/blog')) return false;
-    if (typeF === 'lp'   && slug.includes('/blog'))  return false;
+    const resolvedType = a.type || (slug.includes('/blog') ? 'Blog' : 'LP');
+    if (typeF === 'blog' && resolvedType !== 'Blog') return false;
+    if (typeF === 'lp'   && resolvedType !== 'LP')   return false;
     if (ownerF  && a.assignedTo !== ownerF) return false;
     if (statusF && a.status !== statusF)    return false;
     if (flagF==='flagged'     && !isStuck(a)) return false;
@@ -546,10 +557,8 @@ function render() {
       const editAge      = editSentLate ? editWait : (editBackLate ? editTurn : 0);
       const shortUrl = a.url.replace('https://www.uniqode.com','');
       const doneGreen = ['Published','Merged'].includes(a.status);
-      const isLp   = !shortUrl.includes('/blog');
-      const typeBadge = isLp
-        ? '<span class="type-badge type-lp">LP</span>'
-        : '<span class="type-badge type-blog">Blog</span>';
+      const autoType = shortUrl.includes('/blog') ? 'Blog' : 'LP';
+      const typeBadge = typeSelectHtml(a.id, a.type, autoType);
       return `<tr class="${stuck?'flagged':doneGreen?'done-green':''}" id="row-${a.id}">
         <td>
           <div class="url-meta">${stuck?'<span class="flag" title="Stuck 2+ business days">⚑</span>':''}${a.notes?`<span class="note-pip" data-note="${a.notes.replace(/"/g,'&quot;').replace(/\n/g,'&#10;')}">📝</span>`:''}<span class="url-title" title="${a.title||shortUrl}">${a.title||shortUrl}</span></div>
