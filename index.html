@@ -272,17 +272,11 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
     <option value="">All statuses</option>
     <option>Not Started</option>
     <option>In Progress</option>
+    <option>Sent for Review</option>
+    <option>Sent to Ammo</option>
     <option>Published</option>
     <option>Merged</option>
     <option>Deleted</option>
-  </select>
-  <select id="fFlag" onchange="render()">
-    <option value="">All articles</option>
-    <option value="notstarted">◻ Not Started</option>
-    <option value="inprogress">📝 In Progress</option>
-    <option value="published">✅ Published</option>
-    <option value="merged">🔀 Merged</option>
-    <option value="deleted">🗑 Deleted</option>
   </select>
   <div class="controls-right">
     <input type="text" id="searchInput" placeholder="Search URL or title…" oninput="render()">
@@ -329,6 +323,8 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
         <select id="fStatus2">
           <option>Not Started</option>
           <option>In Progress</option>
+          <option>Sent for Review</option>
+          <option>Sent to Ammo</option>
           <option>Published</option>
           <option>Merged</option>
           <option>Deleted</option>
@@ -351,11 +347,13 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
 <script>
 // ─── STATUS CONFIG ────────────────────────────────────────────────────────────
 const STATUS_CFG = {
-  'Not Started':  {bg:'var(--s0)', color:'var(--s0t)', dot:'#aaa'},
-  'In Progress':  {bg:'var(--s1)', color:'var(--s1t)', dot:'#3b82f6'},
-  'Published':    {bg:'var(--s9)', color:'var(--s9t)', dot:'#16a34a'},
-  'Merged':       {bg:'var(--s10)',color:'var(--s10t)',dot:'#4f46e5'},
-  'Deleted':      {bg:'var(--s11)',color:'var(--s11t)',dot:'#6b7280'},
+  'Not Started':     {bg:'var(--s0)', color:'var(--s0t)', dot:'#aaa'},
+  'In Progress':     {bg:'var(--s1)', color:'var(--s1t)', dot:'#3b82f6'},
+  'Sent for Review': {bg:'var(--s2)', color:'var(--s2t)', dot:'#eab308'},
+  'Sent to Ammo':    {bg:'var(--s5)', color:'var(--s5t)', dot:'#10b981'},
+  'Published':       {bg:'var(--s9)', color:'var(--s9t)', dot:'#16a34a'},
+  'Merged':          {bg:'var(--s10)',color:'var(--s10t)',dot:'#4f46e5'},
+  'Deleted':         {bg:'var(--s11)',color:'var(--s11t)',dot:'#6b7280'},
 };
 const STATUSES = Object.keys(STATUS_CFG);
 const TARGET = 400;
@@ -586,7 +584,6 @@ function render() {
   const ownerF  = document.getElementById('fOwner').value;
   const typeF   = document.getElementById('fType').value;
   const statusF = document.getElementById('fStatus').value;
-  const flagF   = document.getElementById('fFlag').value;
   const search  = document.getElementById('searchInput').value.toLowerCase().trim();
 
   const list = Object.values(articles).filter(a => {
@@ -596,11 +593,6 @@ function render() {
     if (typeF === 'lp'   && resolvedType !== 'LP')   return false;
     if (ownerF  && a.assignedTo !== ownerF) return false;
     if (statusF && a.status !== statusF)    return false;
-    if (flagF==='notstarted'  && a.status !== 'Not Started') return false;
-    if (flagF==='inprogress'  && a.status !== 'In Progress') return false;
-    if (flagF==='published'   && a.status !== 'Published') return false;
-    if (flagF==='merged'      && a.status !== 'Merged') return false;
-    if (flagF==='deleted'     && a.status !== 'Deleted') return false;
     if (search && !a.url.toLowerCase().includes(search) && !a.title.toLowerCase().includes(search)) return false;
     return true;
   });
