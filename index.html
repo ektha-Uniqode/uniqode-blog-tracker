@@ -266,7 +266,7 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
   </select>
   <select id="fOwner" onchange="render()">
     <option value="">All owners</option>
-    <option>Ektha</option><option>Hiba</option><option>Harsh</option><option>Vipul</option>
+    <option>Ektha</option><option>Hiba</option><option>Somreeta</option><option>Harsh</option><option>Vipul</option>
   </select>
   <select id="fStatus" onchange="render()">
     <option value="">All statuses</option>
@@ -319,7 +319,7 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
       <div class="fg"><label>Assigned To</label>
         <select id="fAssigned">
           <option value="">—</option>
-          <option>Ektha</option><option>Hiba</option><option>Harsh</option><option>Vipul</option>
+          <option>Ektha</option><option>Hiba</option><option>Somreeta</option><option>Harsh</option><option>Vipul</option>
         </select>
       </div>
       <div class="fg"><label>Status</label>
@@ -556,7 +556,7 @@ function statusSelectHtml(id, current) {
   return `<select onchange="quickStatus('${id}',this.value)" style="background:${c.bg};color:${c.color};border:none;font-size:11px;font-weight:600;cursor:pointer;outline:none;padding:3px 6px;border-radius:4px;width:100%;appearance:auto">${opts}</select>`;
 }
 
-const OWNERS = ['','Ektha','Hiba','Harsh','Vipul'];
+const OWNERS = ['','Ektha','Hiba','Somreeta','Harsh','Vipul'];
 function ownerSelectHtml(id, current) {
   const opts = OWNERS.map(o => `<option value="${o}"${o===current?' selected':''}>${o||'—'}</option>`).join('');
   const hasPerson = current && current !== '';
