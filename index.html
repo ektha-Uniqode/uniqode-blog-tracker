@@ -152,6 +152,7 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
 .info-icon:hover::before{display:block}
 .act-btn{background:none;border:none;cursor:pointer;color:var(--muted);padding:3px 5px;border-radius:4px;font-size:13px}
 .act-btn:hover{color:var(--text);background:var(--surf2)}
+.del-btn:hover{color:#ef4444!important;background:rgba(239,68,68,.08)!important}
 
 /* ── MODAL ── */
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center}
@@ -648,7 +649,10 @@ function render() {
         <td>${dateInputHtml(a.id,'editSent',a.editSent,editSentLate)}${editSentLate?` <span style="font-size:10px;color:#ef4444;font-weight:700" title="Waiting ${editAge} bizdays">${editAge}d</span>`:''}</td>
         <td>${dateInputHtml(a.id,'editBack',a.editBack,editBackLate)}${editBackLate?` <span style="font-size:10px;color:#ef4444;font-weight:700" title="Took ${editTurn} bizdays">${editTurn}d</span>`:''}</td>
         <td>${dateInputHtml(a.id,'published',a.published)}</td>
-        <td><button class="act-btn" onclick="openModal('${a.id}')" title="Open">✏️</button></td>
+        <td style="white-space:nowrap">
+          <button class="act-btn" onclick="openModal('${a.id}')" title="Edit">✏️</button>
+          <button class="act-btn del-btn" onclick="deleteArt('${a.id}')" title="Delete URL">🗑</button>
+        </td>
       </tr>`;
     }).join('');
   }
@@ -740,7 +744,22 @@ function saveArticle() {
 }
 
 function deleteArt(id) {
-  if (!confirm('Delete this article from the tracker?')) return;
+  if (!canEdit()) { showAuthToast(); return; }
+  const a = articles[id];
+  const label = (a?.title || a?.url || id);
+  if (!confirm(`Permanently remove "${label}" from the tracker?\n\nThis cannot be undone.`)) return;
+  const user = firebase.auth().currentUser;
+  db.ref('activity').push({
+    email: user.email,
+    name: user.displayName || user.email.split('@')[0],
+    articleId: id,
+    title: label,
+    url: a?.url || '',
+    field: 'row',
+    from: 'exists',
+    to: 'deleted',
+    ts: firebase.database.ServerValue.TIMESTAMP
+  });
   db.ref('articles/'+id).remove();
 }
 
