@@ -251,6 +251,7 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
   </div>
   <div class="stat-cards">
     <div class="stat-card"><div class="stat-num" id="sTotal">—</div><div class="stat-label">Total</div></div>
+    <div class="stat-card green"><div class="stat-num" id="sAmmo">0</div><div class="stat-label">With Ammo</div></div>
     <div class="stat-card green"><div class="stat-num" id="sPub">0</div><div class="stat-label">Published ✓</div></div>
     <div class="stat-card green"><div class="stat-num" id="sMerge">0</div><div class="stat-label">Merged ✓</div></div>
     <div class="stat-card green"><div class="stat-num" id="sDel">0</div><div class="stat-label">Deleted ✓</div></div>
@@ -276,6 +277,7 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
     <option>Sent for Review</option>
     <option>SEO Done</option>
     <option>Sent to Ammo</option>
+    <option>With Ammo</option>
     <option>To Be Merged</option>
     <option>To Be Deleted</option>
     <option>Published</option>
@@ -330,6 +332,7 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
           <option>Sent for Review</option>
           <option>SEO Done</option>
           <option>Sent to Ammo</option>
+          <option>With Ammo</option>
           <option>To Be Merged</option>
           <option>To Be Deleted</option>
           <option>Published</option>
@@ -359,6 +362,7 @@ const STATUS_CFG = {
   'Sent for Review': {bg:'var(--s2)', color:'var(--s2t)', dot:'#eab308'},
   'SEO Done':        {bg:'var(--s3)', color:'var(--s3t)', dot:'#22c55e'},
   'Sent to Ammo':    {bg:'var(--s5)', color:'var(--s5t)', dot:'#10b981'},
+  'With Ammo':       {bg:'var(--s3)', color:'var(--s3t)', dot:'#16a34a'},
   'To Be Merged':    {bg:'var(--s6)', color:'var(--s6t)', dot:'#f97316'},
   'To Be Deleted':   {bg:'var(--s7)', color:'var(--s7t)', dot:'#ef4444'},
   'Published':       {bg:'var(--s9)', color:'var(--s9t)', dot:'#16a34a'},
@@ -529,7 +533,7 @@ function bizDaysBetween(startStr, endStr) {
   return c;
 }
 
-const RESOLVED = new Set(['Published','Merged','Deleted']);
+const RESOLVED = new Set(['With Ammo','Published','Merged','Deleted']);
 function isStuck(a) {
   // Currently waiting — overdue (no return date yet)
   if (!RESOLVED.has(a.status)) {
@@ -633,7 +637,7 @@ function render() {
       const editBackLate = a.editBack && editTurn > 2;
       const editAge      = editSentLate ? editWait : (editBackLate ? editTurn : 0);
       const shortUrl = a.url.replace('https://www.uniqode.com','');
-      const doneGreen = ['Published','Merged','Deleted'].includes(a.status);
+      const doneGreen = ['With Ammo','Published','Merged','Deleted'].includes(a.status);
       const autoType = shortUrl.includes('/blog') ? 'Blog' : 'LP';
       const typeBadge = typeSelectHtml(a.id, a.type, autoType);
       return `<tr class="${stuck?'flagged':doneGreen?'done-green':''}" id="row-${a.id}">
@@ -670,13 +674,15 @@ function quickStatus(id, val) {
 function updateStats() {
   const all = Object.values(articles);
   const total = all.length;
+  const ammo = all.filter(a=>a.status==='With Ammo').length;
   const pub  = all.filter(a=>a.status==='Published').length;
   const mrg  = all.filter(a=>a.status==='Merged').length;
   const del  = all.filter(a=>a.status==='Deleted').length;
-  const actioned = pub + mrg + del;
+  const actioned = ammo + pub + mrg + del;
   const pct  = total > 0 ? Math.round(actioned/total*100) : 0;
 
   document.getElementById('sTotal').textContent  = total;
+  document.getElementById('sAmmo').textContent   = ammo;
   document.getElementById('sPub').textContent    = pub;
   document.getElementById('sMerge').textContent  = mrg;
   document.getElementById('sDel').textContent    = del;
