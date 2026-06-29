@@ -107,7 +107,7 @@ select:focus,input:focus{border-color:var(--accent)}
 
 /* ── TABLE ── */
 .table-wrap{overflow-x:auto;padding:0 28px 40px}
-table{width:100%;border-collapse:collapse;margin-top:12px;min-width:900px}
+table{width:100%;border-collapse:collapse;margin-top:12px;min-width:1050px}
 thead th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
 tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
 tbody tr:hover{background:var(--surf)}
@@ -253,7 +253,7 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
     <div class="stat-card"><div class="stat-num" id="sTotal">—</div><div class="stat-label">Total</div></div>
     <div class="stat-card green"><div class="stat-num" id="sAmmo">0</div><div class="stat-label">Sent to Ammo</div></div>
     <div class="stat-card green"><div class="stat-num" id="sPub">0</div><div class="stat-label">Published ✓</div></div>
-    <div class="stat-card green"><div class="stat-num" id="sMerge">0</div><div class="stat-label">Merged ✓</div></div>
+    <div class="stat-card green"><div class="stat-num" id="sMerge">0</div><div class="stat-label">Redirected ✓</div></div>
     <div class="stat-card green"><div class="stat-num" id="sDel">0</div><div class="stat-label">Deleted ✓</div></div>
   </div>
 </div>
@@ -277,10 +277,10 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
     <option>Sent for Review</option>
     <option>SEO Done</option>
     <option>Sent to Ammo</option>
-    <option>To Be Merged</option>
+    <option>To Be Redirected</option>
     <option>To Be Deleted</option>
     <option>Published</option>
-    <option>Merged</option>
+    <option>Redirected</option>
     <option>Deleted</option>
   </select>
   <div class="controls-right">
@@ -303,6 +303,7 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
         <th>Ed. Sent</th>
         <th>Ed. Back</th>
         <th>Published</th>
+        <th>Redirect To</th>
         <th style="width:36px"></th>
       </tr>
     </thead>
@@ -331,10 +332,10 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
           <option>Sent for Review</option>
           <option>SEO Done</option>
           <option>Sent to Ammo</option>
-          <option>To Be Merged</option>
+          <option>To Be Redirected</option>
           <option>To Be Deleted</option>
           <option>Published</option>
-          <option>Merged</option>
+          <option>Redirected</option>
           <option>Deleted</option>
         </select>
       </div>
@@ -343,6 +344,7 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
       <div class="fg"><label>Editorial Sent</label><input id="fEditSent" type="date"></div>
       <div class="fg"><label>Editorial Returned</label><input id="fEditBack" type="date"></div>
       <div class="fg span2"><label>Published Date</label><input id="fPub" type="date"></div>
+      <div class="fg span2"><label>Redirect To</label><input id="fRedirectTo" type="text" placeholder="https://www.uniqode.com/blog/…"></div>
       <div class="fg span2"><label>Notes / Blockers</label><textarea id="fNotes" rows="3"></textarea></div>
     </div>
     <div class="modal-foot">
@@ -360,10 +362,10 @@ const STATUS_CFG = {
   'Sent for Review': {bg:'var(--s2)', color:'var(--s2t)', dot:'#eab308'},
   'SEO Done':        {bg:'var(--s3)', color:'var(--s3t)', dot:'#22c55e'},
   'Sent to Ammo':    {bg:'var(--s5)', color:'var(--s5t)', dot:'#10b981'},
-  'To Be Merged':    {bg:'var(--s6)', color:'var(--s6t)', dot:'#f97316'},
+  'To Be Redirected':{bg:'var(--s6)', color:'var(--s6t)', dot:'#f97316'},
   'To Be Deleted':   {bg:'var(--s7)', color:'var(--s7t)', dot:'#ef4444'},
   'Published':       {bg:'var(--s9)', color:'var(--s9t)', dot:'#16a34a'},
-  'Merged':          {bg:'var(--s10)',color:'var(--s10t)',dot:'#4f46e5'},
+  'Redirected':      {bg:'var(--s10)',color:'var(--s10t)',dot:'#4f46e5'},
   'Deleted':         {bg:'var(--s11)',color:'var(--s11t)',dot:'#6b7280'},
 };
 const STATUSES = Object.keys(STATUS_CFG);
@@ -530,7 +532,7 @@ function bizDaysBetween(startStr, endStr) {
   return c;
 }
 
-const RESOLVED = new Set(['Sent to Ammo','Published','Merged','Deleted']);
+const RESOLVED = new Set(['Sent to Ammo','Published','Redirected','Deleted']);
 function isStuck(a) {
   // Currently waiting — overdue (no return date yet)
   if (!RESOLVED.has(a.status)) {
@@ -634,7 +636,7 @@ function render() {
       const editBackLate = a.editBack && editTurn > 2;
       const editAge      = editSentLate ? editWait : (editBackLate ? editTurn : 0);
       const shortUrl = a.url.replace('https://www.uniqode.com','');
-      const doneGreen = ['Sent to Ammo','Published','Merged','Deleted'].includes(a.status);
+      const doneGreen = ['Sent to Ammo','Published','Redirected','Deleted'].includes(a.status);
       const autoType = shortUrl.includes('/blog') ? 'Blog' : 'LP';
       const typeBadge = typeSelectHtml(a.id, a.type, autoType);
       return `<tr class="${stuck?'flagged':doneGreen?'done-green':''}" id="row-${a.id}">
@@ -650,6 +652,7 @@ function render() {
         <td>${dateInputHtml(a.id,'editSent',a.editSent,editSentLate)}${editSentLate?` <span style="font-size:10px;color:#ef4444;font-weight:700" title="Waiting ${editAge} bizdays">${editAge}d</span>`:''}</td>
         <td>${dateInputHtml(a.id,'editBack',a.editBack,editBackLate)}${editBackLate?` <span style="font-size:10px;color:#ef4444;font-weight:700" title="Took ${editTurn} bizdays">${editTurn}d</span>`:''}</td>
         <td>${dateInputHtml(a.id,'published',a.published)}</td>
+        <td>${a.redirectTo ? `<a href="${a.redirectTo}" target="_blank" style="font-size:11px;color:var(--muted);font-family:'SF Mono','Fira Code',monospace;word-break:break-all">${a.redirectTo.replace('https://www.uniqode.com','')}</a>` : ''}</td>
         <td style="white-space:nowrap">
           <button class="act-btn" onclick="openModal('${a.id}')" title="Edit">✏️</button>
           <button class="act-btn del-btn" onclick="deleteArt('${a.id}')" title="Delete URL">🗑</button>
@@ -673,7 +676,7 @@ function updateStats() {
   const total = all.length;
   const ammo = all.filter(a=>a.status==='Sent to Ammo').length;
   const pub  = all.filter(a=>a.status==='Published').length;
-  const mrg  = all.filter(a=>a.status==='Merged').length;
+  const mrg  = all.filter(a=>a.status==='Redirected').length;
   const del  = all.filter(a=>a.status==='Deleted').length;
   const actioned = ammo + pub + mrg + del;
   const pct  = total > 0 ? Math.round(actioned/total*100) : 0;
@@ -714,6 +717,7 @@ function openModal(id=null) {
   document.getElementById('fEditSent').value = a?.editSent||'';
   document.getElementById('fEditBack').value = a?.editBack||'';
   document.getElementById('fPub').value      = a?.published||'';
+  document.getElementById('fRedirectTo').value = a?.redirectTo||'';
   document.getElementById('fNotes').value    = a?.notes||'';
   document.getElementById('overlay').classList.add('open');
 }
@@ -736,6 +740,7 @@ function saveArticle() {
     editSent:   document.getElementById('fEditSent').value,
     editBack:   document.getElementById('fEditBack').value,
     published:  document.getElementById('fPub').value,
+    redirectTo: document.getElementById('fRedirectTo').value.trim(),
     notes:      document.getElementById('fNotes').value.trim(),
   };
   if (editingId) {
@@ -779,8 +784,8 @@ function copyShareLink(btn) {
 
 // ─── EXPORT ───────────────────────────────────────────────────────────────────
 function exportCSV() {
-  const heads = ['URL','Title','Assigned To','Status','SEO Sent','SEO Returned','Editorial Sent','Editorial Returned','Published','Notes'];
-  const rows  = Object.values(articles).map(a=>[a.url,a.title,a.assignedTo,a.status,a.seoSent,a.seoBack,a.editSent,a.editBack,a.published,a.notes]
+  const heads = ['URL','Title','Assigned To','Status','SEO Sent','SEO Returned','Editorial Sent','Editorial Returned','Published','Redirect To','Notes'];
+  const rows  = Object.values(articles).map(a=>[a.url,a.title,a.assignedTo,a.status,a.seoSent,a.seoBack,a.editSent,a.editBack,a.published,a.redirectTo,a.notes]
     .map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(','));
   const csv   = [heads.join(','), ...rows].join('\n');
   const el    = document.createElement('a');
