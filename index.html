@@ -592,6 +592,9 @@ function dateInputHtml(id, field, val, isLate=false) {
 function quickDate(id, field, val) {
   updateArticle(id, { [field]: val });
 }
+function quickRedirect(id, val) {
+  updateArticle(id, { redirectTo: val.trim() });
+}
 
 function render() {
   const ownerF  = document.getElementById('fOwner').value;
@@ -652,7 +655,9 @@ function render() {
         <td>${dateInputHtml(a.id,'editSent',a.editSent,editSentLate)}${editSentLate?` <span style="font-size:10px;color:#ef4444;font-weight:700" title="Waiting ${editAge} bizdays">${editAge}d</span>`:''}</td>
         <td>${dateInputHtml(a.id,'editBack',a.editBack,editBackLate)}${editBackLate?` <span style="font-size:10px;color:#ef4444;font-weight:700" title="Took ${editTurn} bizdays">${editTurn}d</span>`:''}</td>
         <td>${dateInputHtml(a.id,'published',a.published)}</td>
-        <td>${a.redirectTo ? `<a href="${a.redirectTo}" target="_blank" style="font-size:11px;color:var(--muted);font-family:'SF Mono','Fira Code',monospace;word-break:break-all">${a.redirectTo.replace('https://www.uniqode.com','')}</a>` : ''}</td>
+        <td><input type="text" value="${a.redirectTo||''}" placeholder="—"
+          onchange="quickRedirect('${a.id}',this.value)"
+          style="background:var(--surf2);border:1px solid var(--border);border-radius:5px;color:${a.redirectTo?'var(--text)':'var(--muted)'};font-family:'SF Mono','Fira Code',monospace;font-size:11px;outline:none;padding:3px 6px;width:160px;display:block"></td>
         <td style="white-space:nowrap">
           <button class="act-btn" onclick="openModal('${a.id}')" title="Edit">✏️</button>
           <button class="act-btn del-btn" onclick="deleteArt('${a.id}')" title="Delete URL">🗑</button>
