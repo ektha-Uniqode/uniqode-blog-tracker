@@ -100,7 +100,14 @@ nav h1{font-size:16px;font-weight:700;letter-spacing:-.3px}
 .btn-primary{background:var(--accent);color:#fff}
 .btn-secondary{background:var(--surf2);color:var(--text);border:1px solid var(--border)}
 .btn-danger{background:#7f1d1d;color:#fca5a5;border:1px solid #b91c1c33}
-select,input[type=text]{background:var(--surf2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 9px;font-size:12px;outline:none}
+select,input[type=text],input[type=week]{background:var(--surf2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 9px;font-size:12px;outline:none}
+input[type=week]{color-scheme:dark;cursor:pointer}
+input[type=week]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.6;cursor:pointer}
+input[type=week]::-webkit-calendar-picker-indicator:hover{opacity:1}
+.week-group{display:flex;gap:6px;align-items:center}
+.week-hint{font-size:11px;color:var(--muted);white-space:nowrap}
+.week-clear{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:2px 5px;border-radius:4px;line-height:1}
+.week-clear:hover{color:var(--text);background:var(--surf2)}
 select:focus,input:focus{border-color:var(--accent)}
 .controls-right{margin-left:auto;display:flex;gap:8px;align-items:center}
 #searchInput{width:200px}
@@ -283,6 +290,19 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
     <option>Redirected</option>
     <option>Deleted</option>
   </select>
+  <div class="week-group">
+    <select id="fWeekField" onchange="render()" title="Which date the week filter checks">
+      <option value="published">Published wk</option>
+      <option value="seoSent">SEO Sent wk</option>
+      <option value="seoBack">SEO Back wk</option>
+      <option value="editSent">Ed. Sent wk</option>
+      <option value="editBack">Ed. Back wk</option>
+    </select>
+    <input type="week" id="fWeek" onchange="render()" title="Filter to a specific week">
+    <button class="btn btn-secondary" onclick="setThisWeek()" title="Jump to the current week">This wk</button>
+    <button class="week-clear" id="weekClearBtn" onclick="clearWeek()" title="Clear week filter" style="display:none">✕</button>
+    <span class="week-hint" id="weekHint"></span>
+  </div>
   <div class="controls-right">
     <input type="text" id="searchInput" placeholder="Search URL or title…" oninput="render()">
   </div>
@@ -596,11 +616,55 @@ function quickRedirect(id, val) {
   updateArticle(id, { redirectTo: val.trim() });
 }
 
+// ─── WEEK FILTER HELPERS ────────────────────────────────────────────────────
+// ISO-8601 week string ("2026-W30") for a Date — matches <input type="week">.
+function _isoWeekFromDate(d) {
+  const t = new Date(d.getTime());
+  t.setHours(0, 0, 0, 0);
+  t.setDate(t.getDate() + 3 - ((t.getDay() + 6) % 7)); // Thursday decides the year
+  const week1 = new Date(t.getFullYear(), 0, 4);
+  const wk = 1 + Math.round(((t - week1) / 864e5 - 3 + ((week1.getDay() + 6) % 7)) / 7);
+  return t.getFullYear() + '-W' + String(wk).padStart(2, '0');
+}
+// A stored date value ("YYYY-MM-DD") -> ISO week string, or '' if empty/invalid.
+function isoWeekStr(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  return isNaN(d) ? '' : _isoWeekFromDate(d);
+}
+// "2026-W30" -> "Jul 20 – 26" (Mon–Sun range of that ISO week).
+function isoWeekRange(weekVal) {
+  const m = /^(\d{4})-W(\d{2})$/.exec(weekVal || '');
+  if (!m) return '';
+  const jan4 = new Date(+m[1], 0, 4);
+  const mon = new Date(jan4);
+  mon.setDate(jan4.getDate() - ((jan4.getDay() + 6) % 7) + (+m[2] - 1) * 7);
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return fmt(mon) + ' – ' + fmt(sun);
+}
+function setThisWeek() {
+  document.getElementById('fWeek').value = _isoWeekFromDate(new Date());
+  render();
+}
+function clearWeek() {
+  document.getElementById('fWeek').value = '';
+  render();
+}
+// Toggle the clear button + range hint based on the active week value.
+function syncWeekUI(weekF) {
+  document.getElementById('weekClearBtn').style.display = weekF ? 'inline-block' : 'none';
+  document.getElementById('weekHint').textContent = weekF ? isoWeekRange(weekF) : '';
+}
+
 function render() {
   const ownerF  = document.getElementById('fOwner').value;
   const typeF   = document.getElementById('fType').value;
   const statusF = document.getElementById('fStatus').value;
   const search  = document.getElementById('searchInput').value.toLowerCase().trim();
+  const weekF   = document.getElementById('fWeek').value;
+  const weekFld = document.getElementById('fWeekField').value;
+  syncWeekUI(weekF);
 
   const list = Object.values(articles).filter(a => {
     const slug = a.url.replace('https://www.uniqode.com','');
@@ -609,6 +673,7 @@ function render() {
     if (typeF === 'lp'   && resolvedType !== 'LP')   return false;
     if (ownerF  && a.assignedTo !== ownerF) return false;
     if (statusF && a.status !== statusF)    return false;
+    if (weekF   && isoWeekStr(a[weekFld]) !== weekF) return false;
     if (search && !a.url.toLowerCase().includes(search) && !a.title.toLowerCase().includes(search)) return false;
     return true;
   });
@@ -857,7 +922,7 @@ function updateAuthUI(user) {
   firebase.auth().onAuthStateChanged(user => {
     if (user && !ALLOWED_EMAILS.includes(user.email)) {
       firebase.auth().signOut();
-      alert('Access denied — only hibathu.n, somreeta.s, and ektha.s @uniqode.com can edit this tracker.');
+      alert('Access denied — your uniqode.com account (' + user.email + ') isn\'t on the editor list for this tracker. Ask Ektha to add you.');
       return;
     }
     updateAuthUI(user || null);
