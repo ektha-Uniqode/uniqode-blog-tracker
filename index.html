@@ -106,6 +106,7 @@ input[type=week]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.6;
 input[type=week]::-webkit-calendar-picker-indicator:hover{opacity:1}
 .week-group{display:flex;gap:6px;align-items:center}
 .week-hint{font-size:11px;color:var(--muted);white-space:nowrap}
+.week-label{font-size:12px;color:var(--text);white-space:nowrap}
 .week-clear{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:2px 5px;border-radius:4px;line-height:1}
 .week-clear:hover{color:var(--text);background:var(--surf2)}
 select:focus,input:focus{border-color:var(--accent)}
@@ -291,14 +292,8 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
     <option>Deleted</option>
   </select>
   <div class="week-group">
-    <select id="fWeekField" onchange="render()" title="Which date the week filter checks">
-      <option value="published">Published wk</option>
-      <option value="seoSent">SEO Sent wk</option>
-      <option value="seoBack">SEO Back wk</option>
-      <option value="editSent">Ed. Sent wk</option>
-      <option value="editBack">Ed. Back wk</option>
-    </select>
-    <input type="week" id="fWeek" onchange="render()" title="Filter to a specific week">
+    <span class="week-label">Published week:</span>
+    <input type="date" id="fWeek" onchange="render()" title="Show articles published in this date's week (Mon–Sun)">
     <button class="btn btn-secondary" onclick="setThisWeek()" title="Jump to the current week">This wk</button>
     <button class="week-clear" id="weekClearBtn" onclick="clearWeek()" title="Clear week filter" style="display:none">✕</button>
     <span class="week-hint" id="weekHint"></span>
@@ -318,10 +313,7 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
         <th style="width:60px">Type</th>
         <th>Owner</th>
         <th style="width:150px">Status</th>
-        <th>SEO Sent</th>
-        <th>SEO Back</th>
-        <th>Ed. Sent</th>
-        <th>Ed. Back</th>
+        <th>Docs</th>
         <th>Published</th>
         <th>Redirect To</th>
         <th style="width:36px"></th>
@@ -359,10 +351,7 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
           <option>Deleted</option>
         </select>
       </div>
-      <div class="fg"><label>SEO Sent</label><input id="fSeoSent" type="date"></div>
-      <div class="fg"><label>SEO Returned</label><input id="fSeoBack" type="date"></div>
-      <div class="fg"><label>Editorial Sent</label><input id="fEditSent" type="date"></div>
-      <div class="fg"><label>Editorial Returned</label><input id="fEditBack" type="date"></div>
+      <div class="fg span2"><label>Google Doc Link</label><input id="fDocs" type="text" placeholder="https://docs.google.com/…"></div>
       <div class="fg span2"><label>Published Date</label><input id="fPub" type="date"></div>
       <div class="fg span2"><label>Redirect To</label><input id="fRedirectTo" type="text" placeholder="https://www.uniqode.com/blog/…"></div>
       <div class="fg span2"><label>Notes / Blockers</label><textarea id="fNotes" rows="3"></textarea></div>
@@ -463,7 +452,7 @@ function showAuthToast() {
   showAuthToast._timer = setTimeout(() => { t.style.display = 'none'; }, 5000);
 }
 
-const FIELD_LABELS = { status:'Status', assignedTo:'Owner', seoSent:'SEO Sent', seoBack:'SEO Back', editSent:'Ed. Sent', editBack:'Ed. Back', published:'Published Date', type:'Type', notes:'Notes', title:'Title' };
+const FIELD_LABELS = { status:'Status', assignedTo:'Owner', docsLink:'Doc Link', published:'Published Date', redirectTo:'Redirect To', type:'Type', notes:'Notes', title:'Title' };
 
 function updateArticle(id, changes) {
   if (!db) return;
@@ -554,14 +543,7 @@ function bizDaysBetween(startStr, endStr) {
 
 const RESOLVED = new Set(['Sent to Ammo','Published','Redirected','Deleted']);
 function isStuck(a) {
-  // Currently waiting — overdue (no return date yet)
-  if (!RESOLVED.has(a.status)) {
-    if (a.seoSent  && !a.seoBack  && bizDays(a.seoSent)>=2)  return true;
-    if (a.editSent && !a.editBack && bizDays(a.editSent)>=2) return true;
-  }
-  // Historical — turnaround took >2 bizdays (accountability, even if done/published)
-  if (a.seoSent  && a.seoBack  && bizDaysBetween(a.seoSent, a.seoBack)>2)  return true;
-  if (a.editSent && a.editBack && bizDaysBetween(a.editSent, a.editBack)>2) return true;
+  // SEO/editorial turnaround columns were removed, so the stuck flag is retired.
   return false;
 }
 
@@ -615,9 +597,21 @@ function quickDate(id, field, val) {
 function quickRedirect(id, val) {
   updateArticle(id, { redirectTo: val.trim() });
 }
+function docsCellHtml(id, link) {
+  const safe = (link || '').replace(/"/g, '&quot;');
+  const open = link
+    ? `<a href="${safe}" target="_blank" title="Open doc" style="text-decoration:none;font-size:14px;flex-shrink:0">📄</a>`
+    : '';
+  return `<div style="display:flex;align-items:center;gap:5px">${open}<input type="text" value="${safe}" placeholder="Paste Doc link"
+    onchange="quickDocs('${id}',this.value)"
+    style="background:var(--surf2);border:1px solid var(--border);border-radius:5px;color:${link?'var(--text)':'var(--muted)'};font-family:'SF Mono','Fira Code',monospace;font-size:11px;outline:none;padding:3px 6px;width:170px"></div>`;
+}
+function quickDocs(id, val) {
+  updateArticle(id, { docsLink: val.trim() });
+}
 
 // ─── WEEK FILTER HELPERS ────────────────────────────────────────────────────
-// ISO-8601 week string ("2026-W30") for a Date — matches <input type="week">.
+// ISO-8601 week string ("2026-W30") for a Date — used to bucket articles by week.
 function _isoWeekFromDate(d) {
   const t = new Date(d.getTime());
   t.setHours(0, 0, 0, 0);
@@ -644,17 +638,20 @@ function isoWeekRange(weekVal) {
   return fmt(mon) + ' – ' + fmt(sun);
 }
 function setThisWeek() {
-  document.getElementById('fWeek').value = _isoWeekFromDate(new Date());
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  document.getElementById('fWeek').value = local.toISOString().split('T')[0];
   render();
 }
 function clearWeek() {
   document.getElementById('fWeek').value = '';
   render();
 }
-// Toggle the clear button + range hint based on the active week value.
-function syncWeekUI(weekF) {
-  document.getElementById('weekClearBtn').style.display = weekF ? 'inline-block' : 'none';
-  document.getElementById('weekHint').textContent = weekF ? isoWeekRange(weekF) : '';
+// Toggle the clear button + Mon–Sun range hint based on the picked date.
+function syncWeekUI(weekDate) {
+  const wk = isoWeekStr(weekDate);
+  document.getElementById('weekClearBtn').style.display = wk ? 'inline-block' : 'none';
+  document.getElementById('weekHint').textContent = wk ? isoWeekRange(wk) : '';
 }
 
 function render() {
@@ -662,9 +659,9 @@ function render() {
   const typeF   = document.getElementById('fType').value;
   const statusF = document.getElementById('fStatus').value;
   const search  = document.getElementById('searchInput').value.toLowerCase().trim();
-  const weekF   = document.getElementById('fWeek').value;
-  const weekFld = document.getElementById('fWeekField').value;
-  syncWeekUI(weekF);
+  const weekDate = document.getElementById('fWeek').value;  // any day in the target week
+  const weekF    = isoWeekStr(weekDate);                    // its ISO week, or ''
+  syncWeekUI(weekDate);
 
   const list = Object.values(articles).filter(a => {
     const slug = a.url.replace('https://www.uniqode.com','');
@@ -673,7 +670,7 @@ function render() {
     if (typeF === 'lp'   && resolvedType !== 'LP')   return false;
     if (ownerF  && a.assignedTo !== ownerF) return false;
     if (statusF && a.status !== statusF)    return false;
-    if (weekF   && isoWeekStr(a[weekFld]) !== weekF) return false;
+    if (weekF   && isoWeekStr(a.published) !== weekF) return false;
     if (search && !a.url.toLowerCase().includes(search) && !a.title.toLowerCase().includes(search)) return false;
     return true;
   });
@@ -690,19 +687,6 @@ function render() {
     empty.style.display='none';
     tbody.innerHTML = list.map(a => {
       const stuck = isStuck(a);
-      const notResolved = !RESOLVED.has(a.status);
-      // SEO: waiting (no back) OR turnaround exceeded 2 days (back filled)
-      const seoWait      = (notResolved && a.seoSent && !a.seoBack) ? bizDays(a.seoSent) : 0;
-      const seoTurn      = (a.seoSent && a.seoBack) ? bizDaysBetween(a.seoSent, a.seoBack) : 0;
-      const seoSentLate  = seoWait >= 2;                  // still waiting, overdue
-      const seoBackLate  = a.seoBack && seoTurn > 2;      // returned but was slow
-      const seoAge       = seoSentLate ? seoWait : (seoBackLate ? seoTurn : 0);
-      // Editorial: same pattern
-      const editWait     = (notResolved && a.editSent && !a.editBack) ? bizDays(a.editSent) : 0;
-      const editTurn     = (a.editSent && a.editBack) ? bizDaysBetween(a.editSent, a.editBack) : 0;
-      const editSentLate = editWait >= 2;
-      const editBackLate = a.editBack && editTurn > 2;
-      const editAge      = editSentLate ? editWait : (editBackLate ? editTurn : 0);
       const shortUrl = a.url.replace('https://www.uniqode.com','');
       const doneGreen = ['Sent to Ammo','Published','Redirected','Deleted'].includes(a.status);
       const autoType = shortUrl.includes('/blog') ? 'Blog' : 'LP';
@@ -715,10 +699,7 @@ function render() {
         <td>${typeBadge}</td>
         <td>${ownerSelectHtml(a.id, a.assignedTo)}</td>
         <td>${statusSelectHtml(a.id, a.status)}</td>
-        <td>${dateInputHtml(a.id,'seoSent',a.seoSent,seoSentLate)}${seoSentLate?` <span style="font-size:10px;color:#ef4444;font-weight:700" title="Waiting ${seoAge} bizdays">${seoAge}d</span>`:''}</td>
-        <td>${dateInputHtml(a.id,'seoBack',a.seoBack,seoBackLate)}${seoBackLate?` <span style="font-size:10px;color:#ef4444;font-weight:700" title="Took ${seoTurn} bizdays">${seoTurn}d</span>`:''}</td>
-        <td>${dateInputHtml(a.id,'editSent',a.editSent,editSentLate)}${editSentLate?` <span style="font-size:10px;color:#ef4444;font-weight:700" title="Waiting ${editAge} bizdays">${editAge}d</span>`:''}</td>
-        <td>${dateInputHtml(a.id,'editBack',a.editBack,editBackLate)}${editBackLate?` <span style="font-size:10px;color:#ef4444;font-weight:700" title="Took ${editTurn} bizdays">${editTurn}d</span>`:''}</td>
+        <td>${docsCellHtml(a.id, a.docsLink)}</td>
         <td>${dateInputHtml(a.id,'published',a.published)}</td>
         <td><input type="text" value="${a.redirectTo||''}" placeholder="—"
           onchange="quickRedirect('${a.id}',this.value)"
@@ -782,10 +763,7 @@ function openModal(id=null) {
   document.getElementById('fTitle').value    = a?.title||'';
   document.getElementById('fAssigned').value = a?.assignedTo||'';
   document.getElementById('fStatus2').value  = a?.status||'Not Started';
-  document.getElementById('fSeoSent').value  = a?.seoSent||'';
-  document.getElementById('fSeoBack').value  = a?.seoBack||'';
-  document.getElementById('fEditSent').value = a?.editSent||'';
-  document.getElementById('fEditBack').value = a?.editBack||'';
+  document.getElementById('fDocs').value     = a?.docsLink||'';
   document.getElementById('fPub').value      = a?.published||'';
   document.getElementById('fRedirectTo').value = a?.redirectTo||'';
   document.getElementById('fNotes').value    = a?.notes||'';
@@ -805,10 +783,7 @@ function saveArticle() {
     url, title,
     assignedTo: document.getElementById('fAssigned').value,
     status:     document.getElementById('fStatus2').value,
-    seoSent:    document.getElementById('fSeoSent').value,
-    seoBack:    document.getElementById('fSeoBack').value,
-    editSent:   document.getElementById('fEditSent').value,
-    editBack:   document.getElementById('fEditBack').value,
+    docsLink:   document.getElementById('fDocs').value.trim(),
     published:  document.getElementById('fPub').value,
     redirectTo: document.getElementById('fRedirectTo').value.trim(),
     notes:      document.getElementById('fNotes').value.trim(),
@@ -854,8 +829,8 @@ function copyShareLink(btn) {
 
 // ─── EXPORT ───────────────────────────────────────────────────────────────────
 function exportCSV() {
-  const heads = ['URL','Title','Assigned To','Status','SEO Sent','SEO Returned','Editorial Sent','Editorial Returned','Published','Redirect To','Notes'];
-  const rows  = Object.values(articles).map(a=>[a.url,a.title,a.assignedTo,a.status,a.seoSent,a.seoBack,a.editSent,a.editBack,a.published,a.redirectTo,a.notes]
+  const heads = ['URL','Title','Assigned To','Status','Doc Link','Published','Redirect To','Notes'];
+  const rows  = Object.values(articles).map(a=>[a.url,a.title,a.assignedTo,a.status,a.docsLink,a.published,a.redirectTo,a.notes]
     .map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(','));
   const csv   = [heads.join(','), ...rows].join('\n');
   const el    = document.createElement('a');
