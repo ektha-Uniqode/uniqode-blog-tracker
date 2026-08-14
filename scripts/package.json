@@ -1,0 +1,9 @@
+{
+  "name": "position-sync",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "googleapis": "^144.0.0"
+  }
+}

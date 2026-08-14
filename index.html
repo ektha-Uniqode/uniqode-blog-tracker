@@ -92,6 +92,15 @@ nav h1{font-size:16px;font-weight:700;letter-spacing:-.3px}
 .stat-num{font-size:26px;font-weight:800;letter-spacing:-1px;line-height:1}
 .stat-card.green .stat-num{color:#22c55e}
 .stat-label{font-size:10px;color:var(--muted);margin-top:4px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.organic-area{padding:16px 28px;border-bottom:1px solid var(--border)}
+.organic-head{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.organic-title{font-size:12px;font-weight:700;color:var(--text)}
+.organic-meta{font-size:11px;color:var(--muted)}
+.organic-bars{display:flex;align-items:flex-end;gap:14px;height:110px}
+.organic-bar-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;flex:1;height:100%}
+.organic-bar-val{font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px}
+.organic-bar{width:100%;max-width:34px;background:var(--accent);border-radius:4px 4px 0 0;opacity:.85}
+.organic-bar-label{font-size:10px;color:var(--muted);margin-top:6px;font-weight:600}
 
 /* ── CONTROLS ── */
 .controls{padding:12px 28px;display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--border);flex-wrap:wrap}
@@ -266,6 +275,15 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
   </div>
 </div>
 
+<!-- ORGANIC SIGNUPS (static Metabase snapshot — see #organicSignupsChart in the JS for how to refresh) -->
+<div class="organic-area">
+  <div class="organic-head">
+    <span class="organic-title">Organic Signups (Uniqode, Organic Search channel)</span>
+    <span class="organic-meta">Snapshot from Metabase · pulled Aug 14, 2026 · ask to refresh</span>
+  </div>
+  <div id="organicSignupsChart"></div>
+</div>
+
 <!-- CONTROLS -->
 <div class="controls">
   <button class="btn btn-primary" onclick="openModal()">+ Add URL</button>
@@ -316,6 +334,8 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
         <th>Docs</th>
         <th>Published</th>
         <th>Redirect To</th>
+        <th style="width:100px" title="All-time lowest GSC average position, and the month it happened">Best Position</th>
+        <th style="width:80px" title="Latest weekly GSC average position, pulled every Monday">This Week</th>
         <th style="width:36px"></th>
       </tr>
     </thead>
@@ -654,6 +674,53 @@ function syncWeekUI(weekDate) {
   document.getElementById('weekHint').textContent = wk ? isoWeekRange(wk) : '';
 }
 
+// ─── POSITION TRACKING ──────────────────────────────────────────────────────
+// a.position (written weekly by the GitHub Action, see scripts/sync-positions.mjs):
+//   { current, previous, best, bestMonth, updatedAt }
+// Lower position number = better rank. "best" only ever moves down.
+function positionBestHtml(a) {
+  const p = a.position;
+  if (!p || p.best == null) return '<span style="color:var(--muted)">—</span>';
+  return `<span style="font-weight:600">${p.best}</span><span style="color:var(--muted);font-size:11px"> · ${p.bestMonth||''}</span>`;
+}
+function positionCurrentHtml(a) {
+  const p = a.position;
+  if (!p || p.current == null) return '<span style="color:var(--muted)">—</span>';
+  let arrow = '';
+  if (p.previous != null && p.current !== p.previous) {
+    arrow = p.current < p.previous
+      ? ' <span style="color:#22c55e">▲</span>'   // rank improved (number went down)
+      : ' <span style="color:#ef4444">▼</span>';  // rank dropped (number went up)
+  }
+  return `${p.current}${arrow}`;
+}
+
+// ─── ORGANIC SIGNUPS (static Metabase snapshot) ────────────────────────────
+// Uniqode brand, marketing_channel = 'Organic Search', from marketing_attributions.
+// Pulled Aug 14, 2026. Not live — to refresh, re-run the same query in Metabase
+// and update ORGANIC_SIGNUPS below (or ask Claude to do it).
+const ORGANIC_SIGNUPS = [
+  { month: 'Jan', value: 1215 },
+  { month: 'Feb', value: 976 },
+  { month: 'Mar', value: 873 },
+  { month: 'Apr', value: 733 },
+  { month: 'May', value: 785 },
+  { month: 'Jun', value: 661 },
+  { month: 'Jul', value: 798 },
+];
+
+function renderOrganicSignups() {
+  const el = document.getElementById('organicSignupsChart');
+  if (!el) return;
+  const max = Math.max(...ORGANIC_SIGNUPS.map(d => d.value));
+  el.innerHTML = `<div class="organic-bars">${ORGANIC_SIGNUPS.map(d => `
+    <div class="organic-bar-col">
+      <div class="organic-bar-val">${d.value.toLocaleString()}</div>
+      <div class="organic-bar" style="height:${Math.max(4, Math.round(d.value / max * 84))}px"></div>
+      <div class="organic-bar-label">${d.month}</div>
+    </div>`).join('')}</div>`;
+}
+
 function render() {
   const ownerF  = document.getElementById('fOwner').value;
   const typeF   = document.getElementById('fType').value;
@@ -704,6 +771,8 @@ function render() {
         <td><input type="text" value="${a.redirectTo||''}" placeholder="—"
           onchange="quickRedirect('${a.id}',this.value)"
           style="background:var(--surf2);border:1px solid var(--border);border-radius:5px;color:${a.redirectTo?'var(--text)':'var(--muted)'};font-family:'SF Mono','Fira Code',monospace;font-size:11px;outline:none;padding:3px 6px;width:160px;display:block"></td>
+        <td>${positionBestHtml(a)}</td>
+        <td>${positionCurrentHtml(a)}</td>
         <td style="white-space:nowrap">
           <button class="act-btn" onclick="openModal('${a.id}')" title="Edit">✏️</button>
           <button class="act-btn del-btn" onclick="deleteArt('${a.id}')" title="Delete URL">🗑</button>
@@ -829,9 +898,9 @@ function copyShareLink(btn) {
 
 // ─── EXPORT ───────────────────────────────────────────────────────────────────
 function exportCSV() {
-  const heads = ['URL','Title','Assigned To','Status','Doc Link','Published','Redirect To','Notes'];
-  const rows  = Object.values(articles).map(a=>[a.url,a.title,a.assignedTo,a.status,a.docsLink,a.published,a.redirectTo,a.notes]
-    .map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(','));
+  const heads = ['URL','Title','Assigned To','Status','Doc Link','Published','Redirect To','Notes','Best Position','Best Position Month','This Week Position'];
+  const rows  = Object.values(articles).map(a=>[a.url,a.title,a.assignedTo,a.status,a.docsLink,a.published,a.redirectTo,a.notes,a.position?.best,a.position?.bestMonth,a.position?.current]
+    .map(v=>`"${(v??'').toString().replace(/"/g,'""')}"`).join(','));
   const csv   = [heads.join(','), ...rows].join('\n');
   const el    = document.createElement('a');
   el.href     = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
@@ -893,6 +962,7 @@ function updateAuthUI(user) {
   }
   // Load data immediately for all visitors (read is public)
   startListening();
+  renderOrganicSignups();
   // Auth state only controls edit access
   firebase.auth().onAuthStateChanged(user => {
     if (user && !ALLOWED_EMAILS.includes(user.email)) {
