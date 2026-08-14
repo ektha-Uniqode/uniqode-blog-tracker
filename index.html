@@ -92,15 +92,6 @@ nav h1{font-size:16px;font-weight:700;letter-spacing:-.3px}
 .stat-num{font-size:26px;font-weight:800;letter-spacing:-1px;line-height:1}
 .stat-card.green .stat-num{color:#22c55e}
 .stat-label{font-size:10px;color:var(--muted);margin-top:4px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
-.organic-area{padding:16px 28px;border-bottom:1px solid var(--border)}
-.organic-head{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px}
-.organic-title{font-size:12px;font-weight:700;color:var(--text)}
-.organic-meta{font-size:11px;color:var(--muted)}
-.organic-bars{display:flex;align-items:flex-end;gap:14px;height:110px}
-.organic-bar-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;flex:1;height:100%}
-.organic-bar-val{font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px}
-.organic-bar{width:100%;max-width:34px;background:var(--accent);border-radius:4px 4px 0 0;opacity:.85}
-.organic-bar-label{font-size:10px;color:var(--muted);margin-top:6px;font-weight:600}
 
 /* ── CONTROLS ── */
 .controls{padding:12px 28px;display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--border);flex-wrap:wrap}
@@ -275,15 +266,6 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
   </div>
 </div>
 
-<!-- ORGANIC SIGNUPS (static Metabase snapshot — see #organicSignupsChart in the JS for how to refresh) -->
-<div class="organic-area">
-  <div class="organic-head">
-    <span class="organic-title">Organic Signups (Uniqode, Organic Search channel)</span>
-    <span class="organic-meta">Snapshot from Metabase · pulled Aug 14, 2026 · ask to refresh</span>
-  </div>
-  <div id="organicSignupsChart"></div>
-</div>
-
 <!-- CONTROLS -->
 <div class="controls">
   <button class="btn btn-primary" onclick="openModal()">+ Add URL</button>
@@ -336,6 +318,7 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
         <th>Redirect To</th>
         <th style="width:100px" title="All-time lowest GSC average position, and the month it happened">Best Position</th>
         <th style="width:80px" title="Latest weekly GSC average position, pulled every Monday">This Week</th>
+        <th style="width:80px" title="Organic Search signups, Jan-Jul 2026. Static Metabase snapshot pulled Aug 14, 2026 — ask to refresh.">Signups</th>
         <th style="width:36px"></th>
       </tr>
     </thead>
@@ -695,30 +678,166 @@ function positionCurrentHtml(a) {
   return `${p.current}${arrow}`;
 }
 
-// ─── ORGANIC SIGNUPS (static Metabase snapshot) ────────────────────────────
-// Uniqode brand, marketing_channel = 'Organic Search', from marketing_attributions.
-// Pulled Aug 14, 2026. Not live — to refresh, re-run the same query in Metabase
-// and update ORGANIC_SIGNUPS below (or ask Claude to do it).
-const ORGANIC_SIGNUPS = [
-  { month: 'Jan', value: 1215 },
-  { month: 'Feb', value: 976 },
-  { month: 'Mar', value: 873 },
-  { month: 'Apr', value: 733 },
-  { month: 'May', value: 785 },
-  { month: 'Jun', value: 661 },
-  { month: 'Jul', value: 798 },
-];
+// ─── SIGNUPS (static Metabase snapshot) ─────────────────────────────────────
+// Uniqode brand, marketing_channel = 'Organic Search', landing_page attribution.
+// Jan 1 - Jul 31, 2026. Pulled Aug 14, 2026. Not live -- ask to refresh.
+// Keyed by the exact tracker URL (not normalized) so lookup is a direct hit.
+const SIGNUPS_BY_URL = {
+  "http://uniqode.com/blog/comparison/adobe-qr-code-alternative": 6,
+  "https://www.uniqode.com/": 2427,
+  "https://www.uniqode.com/blog/asset-and-people-management/create-a-free-attendance-qr-code": 8,
+  "https://www.uniqode.com/blog/asset-and-people-management/qr-code-attendance-tracking": 2,
+  "https://www.uniqode.com/blog/asset-and-people-management/qr-code-sign-in-sheet": 6,
+  "https://www.uniqode.com/blog/asset-and-people-management/qr-codes-for-inventory-management": 1,
+  "https://www.uniqode.com/blog/asset-and-people-management/qr-codes-for-registration": 2,
+  "https://www.uniqode.com/blog/comparison/qr-tiger-alternative": 2,
+  "https://www.uniqode.com/blog/dynamic-qr-code/best-free-dynamic-qr-code-generators": 3,
+  "https://www.uniqode.com/blog/dynamic-qr-code/change-qr-code-destination": 29,
+  "https://www.uniqode.com/blog/dynamic-qr-code/guide-to-dynamic-qr-codes": 6,
+  "https://www.uniqode.com/blog/dynamic-qr-code/how-to-edit-a-qr-code": 8,
+  "https://www.uniqode.com/blog/email-signature/for-real-estate-agents": 3,
+  "https://www.uniqode.com/blog/integrations/generate-bulk-qr-google-sheets": 1,
+  "https://www.uniqode.com/blog/lead-generation/how-to-create-a-qr-code-for-a-google-form": 7,
+  "https://www.uniqode.com/blog/lead-generation/with-feedback-qr-code-using-google-forms": 1,
+  "https://www.uniqode.com/blog/lead-generation/with-qr-code-forms": 1,
+  "https://www.uniqode.com/blog/lead-generation/with-qr-codes": 2,
+  "https://www.uniqode.com/blog/lead-generation/with-qr-codes-for-data-collection": 11,
+  "https://www.uniqode.com/blog/lead-generation/with-qr-codes-for-questionnaire": 1,
+  "https://www.uniqode.com/blog/marketing-and-engagement/create-a-qr-code-for-waze-location": 3,
+  "https://www.uniqode.com/blog/marketing-and-engagement/create-qr-codes-with-images-and-text-free": 4,
+  "https://www.uniqode.com/blog/marketing-and-engagement/deep-linking-for-app-download-qr-codes": 1,
+  "https://www.uniqode.com/blog/marketing-and-engagement/email-qr-code": 4,
+  "https://www.uniqode.com/blog/marketing-and-engagement/how-to-create-a-playlist-qr-code": 2,
+  "https://www.uniqode.com/blog/marketing-and-engagement/interactive-qr-codes-for-a-badge": 1,
+  "https://www.uniqode.com/blog/marketing-and-engagement/make-a-qr-code-for-a-restaurant-menu": 2,
+  "https://www.uniqode.com/blog/marketing-and-engagement/make-a-qr-code-link-to-email": 1,
+  "https://www.uniqode.com/blog/qr-code-basics/augmented-reality-qr-codes": 4,
+  "https://www.uniqode.com/blog/qr-code-basics/best-qr-code-scanner-apps": 67,
+  "https://www.uniqode.com/blog/qr-code-basics/create-a-qr-code-menu-for-free": 1,
+  "https://www.uniqode.com/blog/qr-code-basics/how-to-download-a-qr-code": 5,
+  "https://www.uniqode.com/blog/qr-code-basics/how-to-scan-qr-code-from-photos": 12,
+  "https://www.uniqode.com/blog/qr-code-basics/how-to-scan-qr-codes-with-android-phones": 8,
+  "https://www.uniqode.com/blog/qr-code-basics/make-a-qr-code-on-iphone": 4,
+  "https://www.uniqode.com/blog/qr-code-basics/multimedia-qr-code-generator": 3,
+  "https://www.uniqode.com/blog/qr-code-basics/qr-code-history": 1,
+  "https://www.uniqode.com/blog/qr-code-basics/qr-codes-expiry": 11,
+  "https://www.uniqode.com/blog/qr-code-basics/what-are-smart-qr-codes": 1,
+  "https://www.uniqode.com/blog/qr-code-best-practices/how-to-perfectly-size-your-qr-codes": 6,
+  "https://www.uniqode.com/blog/qr-code-best-practices/qr-code-blurry": 2,
+  "https://www.uniqode.com/blog/qr-code-best-practices/qr-code-formats": 1,
+  "https://www.uniqode.com/blog/qr-code-best-practices/qr-code-not-working": 13,
+  "https://www.uniqode.com/blog/qr-code-best-practices/qr-code-placement-guide": 1,
+  "https://www.uniqode.com/blog/qr-code-best-practices/qr-code-printing-guideline": 2,
+  "https://www.uniqode.com/blog/qr-code-best-practices/qr-code-test": 1,
+  "https://www.uniqode.com/blog/qr-code-buying-guide/best-qr-code-generators": 4,
+  "https://www.uniqode.com/blog/qr-code-buying-guide/permanent-qr-code-generator": 16,
+  "https://www.uniqode.com/blog/qr-code-buying-guide/qr-code-generators-paid-vs-free": 4,
+  "https://www.uniqode.com/blog/qr-code-customization/generate-colored-qr-codes": 9,
+  "https://www.uniqode.com/blog/qr-code-customization/high-resolution-qr-code-generator": 9,
+  "https://www.uniqode.com/blog/qr-code-customization/how-to-add-a-qr-code-border": 4,
+  "https://www.uniqode.com/blog/qr-code-customization/qr-code-frame": 1,
+  "https://www.uniqode.com/blog/qr-code-customization/qr-code-generator-with-text-below": 1,
+  "https://www.uniqode.com/blog/qr-code-customization/qr-code-shapes": 28,
+  "https://www.uniqode.com/blog/qr-code-customization/qr-code-with-a-background-image": 6,
+  "https://www.uniqode.com/blog/qr-code-customization/qr-code-with-color-background": 1,
+  "https://www.uniqode.com/blog/qr-code-customization/transparent-qr-code-generator": 10,
+  "https://www.uniqode.com/blog/qr-code-customization/vector-qr-code": 5,
+  "https://www.uniqode.com/blog/qr-code-customization/white-qr-code": 13,
+  "https://www.uniqode.com/blog/qr-code-for-productivity/calendar-qr-code": 2,
+  "https://www.uniqode.com/blog/qr-code-for-productivity/calendly-qr-code": 1,
+  "https://www.uniqode.com/blog/qr-code-for-productivity/how-to-convert-files-to-qr-codes": 1,
+  "https://www.uniqode.com/blog/qr-code-for-productivity/how-to-create-a-qr-code-for-a-document": 5,
+  "https://www.uniqode.com/blog/qr-code-for-productivity/how-to-create-a-qr-code-for-onedrive-file": 3,
+  "https://www.uniqode.com/blog/qr-code-for-productivity/how-to-create-a-qr-code-for-photo-sharing": 6,
+  "https://www.uniqode.com/blog/qr-code-for-productivity/how-to-create-a-qr-code-on-google-chrome": 7,
+  "https://www.uniqode.com/blog/qr-code-for-productivity/how-to-create-a-qr-code-to-download-a-file": 5,
+  "https://www.uniqode.com/blog/qr-code-for-productivity/how-to-make-a-dropbox-qr-code": 3,
+  "https://www.uniqode.com/blog/qr-code-for-productivity/how-to-make-a-google-drive-qr-code": 32,
+  "https://www.uniqode.com/blog/qr-code-for-productivity/how-to-make-qr-codes-for-google-slides": 1,
+  "https://www.uniqode.com/blog/qr-code-for-productivity/qr-code-generator-for-google-services-how-to-create-use-them": 1,
+  "https://www.uniqode.com/blog/qr-code-for-productivity/resume-qr-code": 1,
+  "https://www.uniqode.com/blog/qr-code-for-reviews/google-reviews": 3,
+  "https://www.uniqode.com/blog/qr-code-for-reviews/yelp-reviews": 5,
+  "https://www.uniqode.com/blog/qr-code-management/bulk-qr-code": 2,
+  "https://www.uniqode.com/blog/qr-code-management/multilingual-qr-codes": 2,
+  "https://www.uniqode.com/blog/qr-code-marketing-tips/qr-code-examples-from-brands": 2,
+  "https://www.uniqode.com/blog/qr-code-on-print-materials/free-qr-codes-for-print": 2,
+  "https://www.uniqode.com/blog/qr-code-on-print-materials/posters": 8,
+  "https://www.uniqode.com/blog/qr-code-on-print-materials/receipt": 4,
+  "https://www.uniqode.com/blog/qr-code-on-product-packaging/drug-labels": 3,
+  "https://www.uniqode.com/blog/qr-code-on-product-packaging/smart-packaging": 2,
+  "https://www.uniqode.com/blog/qr-code-security/guide-to-safe-qr-codes": 3,
+  "https://www.uniqode.com/blog/qr-code-security/how-to-check-if-a-qr-code-is-safe": 5,
+  "https://www.uniqode.com/blog/qr-code-security/qr-code-with-password": 6,
+  "https://www.uniqode.com/blog/qr-code-security/qr-codes-product-authentication": 1,
+  "https://www.uniqode.com/blog/qr-code-tracking/google-analytics": 4,
+  "https://www.uniqode.com/blog/qr-code/4-qr-code-alternatives": 6,
+  "https://www.uniqode.com/blog/qr-code/audio-qr-code": 1,
+  "https://www.uniqode.com/blog/qr-code/canva-qr-code": 3,
+  "https://www.uniqode.com/blog/qr-code/excel-qr-code-generator": 6,
+  "https://www.uniqode.com/blog/qr-code/gs1-qr-code-with-digital-link": 1,
+  "https://www.uniqode.com/blog/qr-code/how-much-data-can-qr-code-hold": 2,
+  "https://www.uniqode.com/blog/qr-code/how-to-create-a-qr-code-for-wechat": 1,
+  "https://www.uniqode.com/blog/qr-code/product-packaging-design-tools": 1,
+  "https://www.uniqode.com/blog/qr-code/qr-code-dots": 4,
+  "https://www.uniqode.com/blog/qr-code/qr-code-for-non-profits": 1,
+  "https://www.uniqode.com/blog/qr-code/qr-code-for-spas-and-salons": 1,
+  "https://www.uniqode.com/blog/qr-code/qr-codes-for-recruiting": 1,
+  "https://www.uniqode.com/blog/qr-code/qr-codes-for-spotify": 1,
+  "https://www.uniqode.com/blog/qr-code/qr-codes-in-construction": 1,
+  "https://www.uniqode.com/blog/qr-code/vaccination-qr-code": 1,
+  "https://www.uniqode.com/blog/qr-code/whatsapp-qr-code": 2,
+  "https://www.uniqode.com/blog/qr-code/wifi-qr-code": 8,
+  "https://www.uniqode.com/blog/qr-codes-for-multimedia-files/free-qr-code-with-image": 1,
+  "https://www.uniqode.com/blog/qr-codes-for-occasions/qr-code-for-wedding-photos": 2,
+  "https://www.uniqode.com/blog/qr-codes-for-occasions/qr-codes-for-wedding-invitation": 6,
+  "https://www.uniqode.com/blog/qr-codes-for-occasions/qr-codes-for-wedding-registry": 2,
+  "https://www.uniqode.com/blog/qr-codes-for-occasions/qr-codes-for-wedding-rsvp": 1,
+  "https://www.uniqode.com/blog/trending-use-cases/app-download-qr-codes-for-ctv-ads": 1,
+  "https://www.uniqode.com/blog/trending-use-cases/one-time-use-qr-codes": 32,
+  "https://www.uniqode.com/blog/trending-use-cases/qr-code-for-scavenger-hunt": 6,
+  "https://www.uniqode.com/blog/trending-use-cases/qr-codes-for-tv": 1,
+  "https://www.uniqode.com/blog/trending-use-cases/sneaker-qr-code": 11,
+  "https://www.uniqode.com/blog/trending-use-cases/telegram-qr-code": 2,
+  "https://www.uniqode.com/blog/updates/beaconstac-rebrands-to-uniqode": 4,
+  "https://www.uniqode.com/dynamic-qr-code-generator": 40,
+  "https://www.uniqode.com/features": 12,
+  "https://www.uniqode.com/google-review-qr-code-generator": 6,
+  "https://www.uniqode.com/how-to-scan-a-qr-code": 9,
+  "https://www.uniqode.com/linkpage/facebook-qr-code": 18,
+  "https://www.uniqode.com/qr-code-generator": 780,
+  "https://www.uniqode.com/qr-code-generator/api": 9,
+  "https://www.uniqode.com/qr-code-generator/app-download-qr-code-solution": 111,
+  "https://www.uniqode.com/qr-code-generator/create-circle-qr-codes": 541,
+  "https://www.uniqode.com/qr-code-generator/custom-qr-code": 9,
+  "https://www.uniqode.com/qr-code-generator/for-coupon": 6,
+  "https://www.uniqode.com/qr-code-generator/for-enterprise": 4,
+  "https://www.uniqode.com/qr-code-generator/for-events": 2,
+  "https://www.uniqode.com/qr-code-generator/for-flyers": 1,
+  "https://www.uniqode.com/qr-code-generator/for-image": 7,
+  "https://www.uniqode.com/qr-code-generator/for-location": 625,
+  "https://www.uniqode.com/qr-code-generator/for-marketing": 1,
+  "https://www.uniqode.com/qr-code-generator/for-medium-businesses": 2,
+  "https://www.uniqode.com/qr-code-generator/for-pdf": 18,
+  "https://www.uniqode.com/qr-code-generator/for-posters": 1,
+  "https://www.uniqode.com/qr-code-generator/for-product-packaging": 1,
+  "https://www.uniqode.com/qr-code-generator/for-ratings-and-feedback": 12,
+  "https://www.uniqode.com/qr-code-generator/for-real-estate-marketing": 1,
+  "https://www.uniqode.com/qr-code-generator/for-retail-industry": 1,
+  "https://www.uniqode.com/qr-code-generator/for-text": 1,
+  "https://www.uniqode.com/qr-code-generator/for-video": 10,
+  "https://www.uniqode.com/qr-code-generator/static-vs-dynamic-qr-codes": 5,
+  "https://www.uniqode.com/qr-code-generator/types-of-qr-code": 2,
+  "https://www.uniqode.com/qr-code-generator/with-logo": 107,
+  "https://www.uniqode.com/qr-code-generator/with-multi-user-access-management-feature": 1,
+  "https://www.uniqode.com/vcard-qr-code-generator": 53,
+  "https://www.uniqode.com/what-is-qr-code": 6,
+};
 
-function renderOrganicSignups() {
-  const el = document.getElementById('organicSignupsChart');
-  if (!el) return;
-  const max = Math.max(...ORGANIC_SIGNUPS.map(d => d.value));
-  el.innerHTML = `<div class="organic-bars">${ORGANIC_SIGNUPS.map(d => `
-    <div class="organic-bar-col">
-      <div class="organic-bar-val">${d.value.toLocaleString()}</div>
-      <div class="organic-bar" style="height:${Math.max(4, Math.round(d.value / max * 84))}px"></div>
-      <div class="organic-bar-label">${d.month}</div>
-    </div>`).join('')}</div>`;
+function signupsHtml(a) {
+  const n = SIGNUPS_BY_URL[a.url];
+  if (n == null) return '<span style="color:var(--muted)">—</span>';
+  return n.toLocaleString();
 }
 
 function render() {
@@ -773,6 +892,7 @@ function render() {
           style="background:var(--surf2);border:1px solid var(--border);border-radius:5px;color:${a.redirectTo?'var(--text)':'var(--muted)'};font-family:'SF Mono','Fira Code',monospace;font-size:11px;outline:none;padding:3px 6px;width:160px;display:block"></td>
         <td>${positionBestHtml(a)}</td>
         <td>${positionCurrentHtml(a)}</td>
+        <td>${signupsHtml(a)}</td>
         <td style="white-space:nowrap">
           <button class="act-btn" onclick="openModal('${a.id}')" title="Edit">✏️</button>
           <button class="act-btn del-btn" onclick="deleteArt('${a.id}')" title="Delete URL">🗑</button>
@@ -898,8 +1018,8 @@ function copyShareLink(btn) {
 
 // ─── EXPORT ───────────────────────────────────────────────────────────────────
 function exportCSV() {
-  const heads = ['URL','Title','Assigned To','Status','Doc Link','Published','Redirect To','Notes','Best Position','Best Position Month','This Week Position'];
-  const rows  = Object.values(articles).map(a=>[a.url,a.title,a.assignedTo,a.status,a.docsLink,a.published,a.redirectTo,a.notes,a.position?.best,a.position?.bestMonth,a.position?.current]
+  const heads = ['URL','Title','Assigned To','Status','Doc Link','Published','Redirect To','Notes','Best Position','Best Position Month','This Week Position','Signups (Organic, Jan-Jul 26)'];
+  const rows  = Object.values(articles).map(a=>[a.url,a.title,a.assignedTo,a.status,a.docsLink,a.published,a.redirectTo,a.notes,a.position?.best,a.position?.bestMonth,a.position?.current,SIGNUPS_BY_URL[a.url]]
     .map(v=>`"${(v??'').toString().replace(/"/g,'""')}"`).join(','));
   const csv   = [heads.join(','), ...rows].join('\n');
   const el    = document.createElement('a');
@@ -962,7 +1082,6 @@ function updateAuthUI(user) {
   }
   // Load data immediately for all visitors (read is public)
   startListening();
-  renderOrganicSignups();
   // Auth state only controls edit access
   firebase.auth().onAuthStateChanged(user => {
     if (user && !ALLOWED_EMAILS.includes(user.email)) {
