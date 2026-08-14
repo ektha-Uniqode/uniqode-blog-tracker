@@ -316,6 +316,8 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
         <th>Docs</th>
         <th>Published</th>
         <th>Redirect To</th>
+        <th style="width:100px" title="All-time lowest GSC average position, and the month it happened">Best Position</th>
+        <th style="width:80px" title="Latest weekly GSC average position, pulled every Monday">This Week</th>
         <th style="width:36px"></th>
       </tr>
     </thead>
@@ -654,6 +656,27 @@ function syncWeekUI(weekDate) {
   document.getElementById('weekHint').textContent = wk ? isoWeekRange(wk) : '';
 }
 
+// ─── POSITION TRACKING ──────────────────────────────────────────────────────
+// a.position (written weekly by the GitHub Action, see scripts/sync-positions.mjs):
+//   { current, previous, best, bestMonth, updatedAt }
+// Lower position number = better rank. "best" only ever moves down.
+function positionBestHtml(a) {
+  const p = a.position;
+  if (!p || p.best == null) return '<span style="color:var(--muted)">—</span>';
+  return `<span style="font-weight:600">${p.best}</span><span style="color:var(--muted);font-size:11px"> · ${p.bestMonth||''}</span>`;
+}
+function positionCurrentHtml(a) {
+  const p = a.position;
+  if (!p || p.current == null) return '<span style="color:var(--muted)">—</span>';
+  let arrow = '';
+  if (p.previous != null && p.current !== p.previous) {
+    arrow = p.current < p.previous
+      ? ' <span style="color:#22c55e">▲</span>'   // rank improved (number went down)
+      : ' <span style="color:#ef4444">▼</span>';  // rank dropped (number went up)
+  }
+  return `${p.current}${arrow}`;
+}
+
 function render() {
   const ownerF  = document.getElementById('fOwner').value;
   const typeF   = document.getElementById('fType').value;
@@ -704,6 +727,8 @@ function render() {
         <td><input type="text" value="${a.redirectTo||''}" placeholder="—"
           onchange="quickRedirect('${a.id}',this.value)"
           style="background:var(--surf2);border:1px solid var(--border);border-radius:5px;color:${a.redirectTo?'var(--text)':'var(--muted)'};font-family:'SF Mono','Fira Code',monospace;font-size:11px;outline:none;padding:3px 6px;width:160px;display:block"></td>
+        <td>${positionBestHtml(a)}</td>
+        <td>${positionCurrentHtml(a)}</td>
         <td style="white-space:nowrap">
           <button class="act-btn" onclick="openModal('${a.id}')" title="Edit">✏️</button>
           <button class="act-btn del-btn" onclick="deleteArt('${a.id}')" title="Delete URL">🗑</button>
@@ -829,9 +854,9 @@ function copyShareLink(btn) {
 
 // ─── EXPORT ───────────────────────────────────────────────────────────────────
 function exportCSV() {
-  const heads = ['URL','Title','Assigned To','Status','Doc Link','Published','Redirect To','Notes'];
-  const rows  = Object.values(articles).map(a=>[a.url,a.title,a.assignedTo,a.status,a.docsLink,a.published,a.redirectTo,a.notes]
-    .map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(','));
+  const heads = ['URL','Title','Assigned To','Status','Doc Link','Published','Redirect To','Notes','Best Position','Best Position Month','This Week Position'];
+  const rows  = Object.values(articles).map(a=>[a.url,a.title,a.assignedTo,a.status,a.docsLink,a.published,a.redirectTo,a.notes,a.position?.best,a.position?.bestMonth,a.position?.current]
+    .map(v=>`"${(v??'').toString().replace(/"/g,'""')}"`).join(','));
   const csv   = [heads.join(','), ...rows].join('\n');
   const el    = document.createElement('a');
   el.href     = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));

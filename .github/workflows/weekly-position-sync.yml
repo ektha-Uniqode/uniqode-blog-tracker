@@ -1,0 +1,26 @@
+name: Weekly position sync
+
+on:
+  schedule:
+    # 04:00 UTC Monday = 09:30 IST Monday. Adjust if you want a different local time.
+    - cron: '0 4 * * 1'
+  workflow_dispatch: {}   # lets you trigger a run manually from the Actions tab
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: scripts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: node sync-positions.mjs
+        env:
+          GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          FIREBASE_DATABASE_URL: ${{ vars.FIREBASE_DATABASE_URL }}
+          GSC_SITE_URL: ${{ vars.GSC_SITE_URL }}
+          SHEET_ID: ${{ vars.SHEET_ID }}
