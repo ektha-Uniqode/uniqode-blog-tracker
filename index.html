@@ -92,6 +92,15 @@ nav h1{font-size:16px;font-weight:700;letter-spacing:-.3px}
 .stat-num{font-size:26px;font-weight:800;letter-spacing:-1px;line-height:1}
 .stat-card.green .stat-num{color:#22c55e}
 .stat-label{font-size:10px;color:var(--muted);margin-top:4px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.organic-area{padding:16px 28px;border-bottom:1px solid var(--border)}
+.organic-head{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.organic-title{font-size:12px;font-weight:700;color:var(--text)}
+.organic-meta{font-size:11px;color:var(--muted)}
+.organic-bars{display:flex;align-items:flex-end;gap:14px;height:110px}
+.organic-bar-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;flex:1;height:100%}
+.organic-bar-val{font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px}
+.organic-bar{width:100%;max-width:34px;background:var(--accent);border-radius:4px 4px 0 0;opacity:.85}
+.organic-bar-label{font-size:10px;color:var(--muted);margin-top:6px;font-weight:600}
 
 /* ── CONTROLS ── */
 .controls{padding:12px 28px;display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--border);flex-wrap:wrap}
@@ -264,6 +273,15 @@ input[type="date"]::-webkit-datetime-edit-fields-wrapper{cursor:pointer}
     <div class="stat-card green"><div class="stat-num" id="sMerge">0</div><div class="stat-label">Redirected ✓</div></div>
     <div class="stat-card green"><div class="stat-num" id="sDel">0</div><div class="stat-label">Deleted ✓</div></div>
   </div>
+</div>
+
+<!-- ORGANIC SIGNUPS (static Metabase snapshot — see #organicSignupsChart in the JS for how to refresh) -->
+<div class="organic-area">
+  <div class="organic-head">
+    <span class="organic-title">Organic Signups (Uniqode, Organic Search channel)</span>
+    <span class="organic-meta">Snapshot from Metabase · pulled Aug 14, 2026 · ask to refresh</span>
+  </div>
+  <div id="organicSignupsChart"></div>
 </div>
 
 <!-- CONTROLS -->
@@ -677,6 +695,32 @@ function positionCurrentHtml(a) {
   return `${p.current}${arrow}`;
 }
 
+// ─── ORGANIC SIGNUPS (static Metabase snapshot) ────────────────────────────
+// Uniqode brand, marketing_channel = 'Organic Search', from marketing_attributions.
+// Pulled Aug 14, 2026. Not live — to refresh, re-run the same query in Metabase
+// and update ORGANIC_SIGNUPS below (or ask Claude to do it).
+const ORGANIC_SIGNUPS = [
+  { month: 'Jan', value: 1215 },
+  { month: 'Feb', value: 976 },
+  { month: 'Mar', value: 873 },
+  { month: 'Apr', value: 733 },
+  { month: 'May', value: 785 },
+  { month: 'Jun', value: 661 },
+  { month: 'Jul', value: 798 },
+];
+
+function renderOrganicSignups() {
+  const el = document.getElementById('organicSignupsChart');
+  if (!el) return;
+  const max = Math.max(...ORGANIC_SIGNUPS.map(d => d.value));
+  el.innerHTML = `<div class="organic-bars">${ORGANIC_SIGNUPS.map(d => `
+    <div class="organic-bar-col">
+      <div class="organic-bar-val">${d.value.toLocaleString()}</div>
+      <div class="organic-bar" style="height:${Math.max(4, Math.round(d.value / max * 84))}px"></div>
+      <div class="organic-bar-label">${d.month}</div>
+    </div>`).join('')}</div>`;
+}
+
 function render() {
   const ownerF  = document.getElementById('fOwner').value;
   const typeF   = document.getElementById('fType').value;
@@ -918,6 +962,7 @@ function updateAuthUI(user) {
   }
   // Load data immediately for all visitors (read is public)
   startListening();
+  renderOrganicSignups();
   // Auth state only controls edit access
   firebase.auth().onAuthStateChanged(user => {
     if (user && !ALLOWED_EMAILS.includes(user.email)) {
