@@ -21,6 +21,9 @@ jobs:
       - run: node sync-positions.mjs
         env:
           GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          GSC_OAUTH_CLIENT_ID: ${{ secrets.GSC_OAUTH_CLIENT_ID }}
+          GSC_OAUTH_CLIENT_SECRET: ${{ secrets.GSC_OAUTH_CLIENT_SECRET }}
+          GSC_OAUTH_REFRESH_TOKEN: ${{ secrets.GSC_OAUTH_REFRESH_TOKEN }}
           FIREBASE_DATABASE_URL: ${{ vars.FIREBASE_DATABASE_URL }}
           GSC_SITE_URL: ${{ vars.GSC_SITE_URL }}
           SHEET_ID: ${{ vars.SHEET_ID }}

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Weekly GSC position sync — see ../POSITION_TRACKING_SETUP.md for the one-time
-// account setup this script depends on (service account, GSC access, Sheet share).
+// account setup this script depends on (OAuth consent for GSC reads, service account
+// for Firebase + Sheets writes, Sheet share).
 //
 // What it does, every Monday (via .github/workflows/weekly-position-sync.yml):
 //   1. Pulls last week's average position per page from Google Search Console.
@@ -20,9 +21,12 @@ import admin from 'firebase-admin';
 const DRY_RUN = process.argv.includes('--dry-run');
 
 const {
-  GCP_SERVICE_ACCOUNT_KEY,   // full JSON key, as a string (GitHub secret)
+  GCP_SERVICE_ACCOUNT_KEY,   // full JSON key, as a string (GitHub secret) — Firebase + Sheets only
+  GSC_OAUTH_CLIENT_ID,       // OAuth client (Desktop app type), same GCP project
+  GSC_OAUTH_CLIENT_SECRET,   // paired secret for the OAuth client
+  GSC_OAUTH_REFRESH_TOKEN,   // one-time consent (OAuth Playground) → long-lived refresh token, as YOU
   FIREBASE_DATABASE_URL,     // e.g. https://q2-blog-cleanup-default-rtdb.firebaseio.com
-  GSC_SITE_URL,              // e.g. https://www.uniqode.com/  (must match GSC property exactly)
+  GSC_SITE_URL,              // e.g. sc-domain:uniqode.com (must match GSC property exactly)
   SHEET_ID,                  // Google Sheet ID from its URL
   SHEET_TAB = 'Positions',
 } = process.env;
@@ -35,6 +39,18 @@ function requireEnv(name, val) {
 function loadServiceAccount() {
   const raw = requireEnv('GCP_SERVICE_ACCOUNT_KEY', GCP_SERVICE_ACCOUNT_KEY);
   return JSON.parse(raw);
+}
+
+// GSC reads run as YOU (via OAuth refresh token), not the service account — sidesteps
+// needing GSC "Owner" permission to add the service account as a user. Your existing
+// siteFullUser access on the property is all that's needed to read search analytics.
+function buildGscOAuthClient() {
+  const clientId = requireEnv('GSC_OAUTH_CLIENT_ID', GSC_OAUTH_CLIENT_ID);
+  const clientSecret = requireEnv('GSC_OAUTH_CLIENT_SECRET', GSC_OAUTH_CLIENT_SECRET);
+  const refreshToken = requireEnv('GSC_OAUTH_REFRESH_TOKEN', GSC_OAUTH_REFRESH_TOKEN);
+  const client = new google.auth.OAuth2(clientId, clientSecret);
+  client.setCredentials({ refresh_token: refreshToken });
+  return client;
 }
 
 // Normalize URLs so tracker entries and GSC's `page` dimension line up
@@ -195,14 +211,12 @@ async function syncSheet(sheetsClient, articles, updates, weekEndDate) {
 
 async function main() {
   const key = loadServiceAccount();
-  const auth = new google.auth.GoogleAuth({
+  const gscAuth = buildGscOAuthClient();
+  const sheetsAuth = new google.auth.GoogleAuth({
     credentials: key,
-    scopes: [
-      'https://www.googleapis.com/auth/webmasters.readonly',
-      'https://www.googleapis.com/auth/spreadsheets',
-    ],
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
-  const authClient = await auth.getClient();
+  const sheetsAuthClient = await sheetsAuth.getClient();
 
   admin.initializeApp({
     credential: admin.credential.cert(key),
@@ -214,7 +228,7 @@ async function main() {
   const { weekEndDate } = lastFullWeekRange();
 
   console.log(`Fetching GSC positions for ${siteUrl}, week ending ${weekEndDate.toISOString().split('T')[0]}…`);
-  const gscMap = await fetchGscPositions(authClient, siteUrl);
+  const gscMap = await fetchGscPositions(gscAuth, siteUrl);
   console.log(`GSC returned ${gscMap.size} pages.`);
 
   const articles = await loadArticles(db);
@@ -229,7 +243,7 @@ async function main() {
   }
 
   if (SHEET_ID) {
-    const sheetsClient = google.sheets({ version: 'v4', auth: authClient });
+    const sheetsClient = google.sheets({ version: 'v4', auth: sheetsAuthClient });
     // Merge computed updates into a fresh copy of articles so the sheet reflects this run.
     const merged = Object.fromEntries(
       Object.entries(articles).map(([id, a]) => [id, { ...a, position: updates[id] || a.position }])
